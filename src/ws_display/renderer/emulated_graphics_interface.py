@@ -45,7 +45,7 @@ class EmulatedFont(Font):
     def __init__(self):
         self._font = None
         self._font_path = None
-        self._font_size = 10  # Default size
+        self._font_size = 16  # Default size
         self._loaded = False
     
     def LoadFont(self, file: str) -> None:
@@ -214,10 +214,7 @@ class EmulatedGraphicInterface(GraphicInterface):
             # Just scale the image without gutters
             scaled_image = adjusted_image.resize((self._width * self._scale, self._height * self._scale), Image.NEAREST)
         
-        # Save the image to a file in the runtime_artifacts directory
-        os.makedirs("runtime_artifacts", exist_ok=True)
-        scaled_image.save("runtime_artifacts/current_display.png")
-        
+            
         # If the window is created, update it
         if self._window_created and self._root and self._tk_canvas:
             try:
@@ -268,36 +265,11 @@ class EmulatedGraphicInterface(GraphicInterface):
         if not isinstance(font, EmulatedFont):
             raise TypeError("Font must be an EmulatedFont")
         
-        # For pixel-perfect rendering without anti-aliasing, we'll draw each character pixel by pixel
+        # Use DrawGlyph for each character in the text
         width = 0
         for char in text:
-            # Draw each character as individual pixels
-            for i in range(len(char)):
-                # Get the character's bitmap representation
-                if font._font:
-                    # For TTF fonts, render to a small temporary image and extract pixels
-                    temp_img = Image.new('RGB', (font._font_size, font._font_size), color=(0, 0, 0))
-                    temp_draw = ImageDraw.Draw(temp_img)
-                    temp_draw.text((0, 0), char, fill=(255, 255, 255), font=font._font)
-                    
-                    # Copy non-black pixels to the canvas
-                    char_width = 0
-                    for px in range(temp_img.width):
-                        for py in range(temp_img.height):
-                            pixel = temp_img.getpixel((px, py))
-                            if pixel[0] > 128:  # If bright enough (not black or dark gray)
-                                canvas.SetPixel(x + width + px, y - font.baseline + py, color)
-                                char_width = max(char_width, px + 1)
-                    
-                    width += char_width + 1  # Add spacing
-                else:
-                    # For BDF or missing fonts, use a simple fixed-width approach
-                    char_width = font._font_size // 2
-                    # Draw a simple block for the character
-                    for px in range(char_width):
-                        for py in range(font._font_size):
-                            canvas.SetPixel(x + width + px, y - font.baseline + py, color)
-                    width += char_width + 1  # Add spacing
+            char_width = font.DrawGlyph(canvas, x + width, y, color, ord(char))
+            width += char_width + 1  # Add spacing between characters
         
         return width
     

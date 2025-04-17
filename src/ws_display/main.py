@@ -9,7 +9,7 @@ from typing import Optional, cast
 from src.logging import Logger
 from src.ws_display.Config import Config
 from src.ws_display.config_loader import get_config
-from src.ws_display.renderer.graphic_interface import GraphicInterface, Color
+from src.ws_display.renderer.graphic_interface import Font, GraphicInterface, Color
 
 class MatrixApp:
     def __init__(self):
@@ -24,9 +24,9 @@ class MatrixApp:
         Create the appropriate GraphicInterface based on the platform.
         """
         # Check if we're on a Raspberry Pi
-        is_raspberry_pi = platform.machine().startswith('arm') and os.path.exists('/sys/firmware/devicetree/base/model')
+        self.is_raspberry_pi = platform.machine().startswith('arm') and os.path.exists('/sys/firmware/devicetree/base/model')
         
-        if is_raspberry_pi:
+        if self.is_raspberry_pi:
             self.logger.info("Detected Raspberry Pi platform, using PiGraphicInterface")
             try:
                 # Import here to avoid errors when not on a Pi
@@ -48,12 +48,11 @@ class MatrixApp:
                     config_brightness_override=self.config.brightness_override,
                     **matrix_options
                 )
+                self.is_raspberry_pi = True
             except ImportError as e:
-                self.logger.error(f"Failed to import PiGraphicInterface: {e}")
-                self.logger.warning("Falling back to EmulatedGraphicInterface")
-                is_raspberry_pi = False
+                self.s_raspberry_pi = False
         
-        if not is_raspberry_pi:
+        if not self.is_raspberry_pi:
             self.logger.info("Using EmulatedGraphicInterface")
             from src.ws_display.renderer.emulated_graphics_interface import EmulatedGraphicInterface
             
@@ -70,70 +69,75 @@ class MatrixApp:
                 use_circles=True  # Whether to render pixels as circles
             )
     
-    async def run_renderer(self):
-        """
-        Run the renderer loop with a scrolling text demo.
-        """
-        self.logger.info("Starting renderer")
-        self.running = True
-        
-        # Create a font
+    def load_font(self, font_name: str) -> Optional[Font]: 
         font = self.graphic_interface.CreateFont()
         try:
             # Try to load the font from the fonts directory
-            font_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
-                                    "fonts", "5x7.ttf")
-            if not os.path.exists(font_path):
-                # Try BDF font if TTF not found
+            if not self.is_raspberry_pi:
                 font_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
-                                        "fonts", "5x7.bdf")
+                                        "fonts", font_name+".ttf")
+            else:
+                font_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+                                        "fonts", font_name+".bdf")
             
             font.LoadFont(font_path)
             self.logger.info(f"Loaded font: {font_path}")
+            return font
         except Exception as e:
             self.logger.error(f"Failed to load font: {e}")
             return
         
-        # Create colors
-        yellow = Color(255, 255, 0)
-        red = Color(255, 0, 0)
-        green = Color(0, 255, 0)
-        blue = Color(0, 0, 255)
+    async def run_renderer(self):
+        """
+        Run the renderer loop with workshop display.
+        """
+        self.logger.info("Starting renderer")
+        self.running = True
+        
+        # Create fonts
+        workshop_font = self.load_font("emil")
+        location_font = self.load_font("emil")  # Using the same font initially
         
         # Create a canvas
         offscreen_canvas = self.graphic_interface.CreateFrameCanvas()
         
-        # Text to display
-        text = "---TEST WORKSHOP MATRIX DISPLAY---"
-        pos = offscreen_canvas.width
+        # Set up workshop runner
+        from datetime import datetime
+        from src.ws_display.workshop_runner import workshop_runner
+        
+        # Lambda to get current datetime
+        get_current_datetime = lambda: datetime.now()
+        
+        # Configure workshop runner
+        line_height = 15  # Height for each workshop line
+        location_line_height = 15  # Height for the location line at the bottom
+        
+        # Create workshop runner
+        runner = workshop_runner(
+            graphic_interface=self.graphic_interface,
+            workshop_font=workshop_font,
+            location_font=location_font,
+            get_current_datetime=get_current_datetime,
+            line_height=line_height,
+            location_line_height=location_line_height,
+            screen_margin=3  # Add screen margin as requested
+        )
         
         try:
             while self.running:
-                # Clear the canvas
-                offscreen_canvas.Clear()
-                
-                # Draw scrolling text
-                length = self.graphic_interface.DrawText(offscreen_canvas, font, pos, 10, yellow, text)
-                
-                # Draw some shapes for testing
-                self.graphic_interface.DrawCircle(offscreen_canvas, 16, 30, 10, red)
-                self.graphic_interface.DrawLine(offscreen_canvas, 40, 30, 80, 30, green)
-                self.graphic_interface.DrawLine(offscreen_canvas, 60, 20, 60, 40, blue)
-                
-                # Update position
-                pos -= 1
-                if pos + length < 0:
-                    pos = offscreen_canvas.width
+                # Render workshops using the workshop runner
+                offscreen_canvas = runner.render(offscreen_canvas)
                 
                 # Swap canvas
                 offscreen_canvas = self.graphic_interface.SwapOnVSync(offscreen_canvas)
                 
                 # Sleep to control frame rate
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.015)
         except Exception as e:
             self.logger.error(f"Error in renderer loop: {e}")
         finally:
             self.logger.info("Renderer stopped")
+            exit(0)
             self.running = False
     
     async def run(self):
