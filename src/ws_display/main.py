@@ -65,7 +65,9 @@ class MatrixApp:
                 width=width,
                 height=height,
                 config_brightness_override=self.config.brightness_override,
-                scale=8  # Adjust scale as needed
+                scale=6,  # Adjust scale as needed
+                pixel_spacing=0.4,  # Spacing between pixels (0.0 - 1.0)
+                use_circles=True  # Whether to render pixels as circles
             )
     
     async def run_renderer(self):

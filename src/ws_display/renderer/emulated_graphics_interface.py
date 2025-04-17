@@ -123,11 +123,14 @@ class EmulatedFont(Font):
             return int(self._font_size * 0.8)
 
 class EmulatedGraphicInterface(GraphicInterface):
-    def __init__(self, width: int, height: int, config_brightness_override: float = 1.0, scale: int = 8):
+    def __init__(self, width: int, height: int, config_brightness_override: float = 1.0, scale: int = 8, 
+                 pixel_spacing: float = 0.4, use_circles: bool = True):
         super().__init__(config_brightness_override)
         self._width = width
         self._height = height
         self._scale = scale  # Scale factor for display (makes the small matrix more visible)
+        self._pixel_spacing = pixel_spacing  # Spacing between pixels (0.0 - 1.0)
+        self._use_circles = use_circles  # Whether to render pixels as circles
         
         # We'll create the window when needed
         self._root = None
@@ -165,8 +168,51 @@ class EmulatedGraphicInterface(GraphicInterface):
         # Apply brightness adjustment
         adjusted_image = self._adjust_brightness(canvas.image)
         
-        # Scale the image for display
-        scaled_image = adjusted_image.resize((self._width * self._scale, self._height * self._scale), Image.NEAREST)
+        # Create a new image with gutters between pixels
+        if self._pixel_spacing > 0 or self._use_circles:
+            # Calculate pixel and gutter sizes
+            pixel_size = self._scale
+            gutter_size = int(pixel_size * self._pixel_spacing)
+            
+            # Calculate the total size with gutters
+            display_width = self._width * (pixel_size + gutter_size)
+            display_height = self._height * (pixel_size + gutter_size)
+            
+            # Create a black background image
+            display_image = Image.new('RGB', (display_width, display_height), color=(0, 0, 0))
+            draw = ImageDraw.Draw(display_image)
+            
+            # Draw each pixel as a circle or square with spacing
+            for x in range(self._width):
+                for y in range(self._height):
+                    pixel_color = adjusted_image.getpixel((x, y))
+                    if pixel_color != (0, 0, 0):  # Only draw non-black pixels
+                        # Calculate position with gutters
+                        pixel_x = x * (pixel_size + gutter_size) + gutter_size // 2
+                        pixel_y = y * (pixel_size + gutter_size) + gutter_size // 2
+                        
+                        if self._use_circles:
+                            # Draw a circle for each pixel
+                            radius = pixel_size // 2
+                            center_x = pixel_x + radius
+                            center_y = pixel_y + radius
+                            draw.ellipse(
+                                [(center_x - radius, center_y - radius), 
+                                 (center_x + radius, center_y + radius)], 
+                                fill=pixel_color
+                            )
+                        else:
+                            # Draw a square for each pixel
+                            draw.rectangle(
+                                [(pixel_x, pixel_y), 
+                                 (pixel_x + pixel_size, pixel_y + pixel_size)], 
+                                fill=pixel_color
+                            )
+            
+            scaled_image = display_image
+        else:
+            # Just scale the image without gutters
+            scaled_image = adjusted_image.resize((self._width * self._scale, self._height * self._scale), Image.NEAREST)
         
         # Save the image to a file in the runtime_artifacts directory
         os.makedirs("runtime_artifacts", exist_ok=True)
@@ -175,6 +221,11 @@ class EmulatedGraphicInterface(GraphicInterface):
         # If the window is created, update it
         if self._window_created and self._root and self._tk_canvas:
             try:
+                # Update window size if needed
+                if self._tk_canvas.winfo_width() != scaled_image.width or self._tk_canvas.winfo_height() != scaled_image.height:
+                    self._tk_canvas.config(width=scaled_image.width, height=scaled_image.height)
+                    self._root.geometry(f"{scaled_image.width}x{scaled_image.height}")
+                
                 # Convert to PhotoImage and display
                 self._current_photo = ImageTk.PhotoImage(scaled_image)
                 self._tk_canvas.delete("all")
