@@ -120,7 +120,8 @@ class MatrixApp:
             get_current_datetime=get_current_datetime,
             line_height=line_height,
             location_line_height=location_line_height,
-            screen_margin=3  # Add screen margin as requested
+            screen_margin=3,  # Add screen margin as requested
+            scroll_speed=5.0  # Slower scrolling speed (pixels per second)
         )
         
         try:

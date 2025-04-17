@@ -23,7 +23,8 @@ class workshop_runner:
         screen_margin: int = 3,
         location_display_time: int = 5,  # seconds to display each location
         workshop_update_interval: int = 30,  # seconds between workshop list updates
-        future_time_limit: int = 24 * 60  # minutes (24 hours)
+        future_time_limit: int = 24 * 60,  # minutes (24 hours)
+        scroll_speed: float = 10.0  # pixels per second for scrolling text
     ):
         """
         Initialize the workshop_runner.
@@ -78,6 +79,10 @@ class workshop_runner:
         self.text_color = Color(255, 0, 0)  # Red
         self.location_color = Color(255, 0, 0)  # Red
         self.chevron_color = Color(255, 0, 0)  # Red
+        self.background_color = Color(0, 0, 0)  # Black background
+        
+        # Scrolling configuration
+        self.scroll_speed = scroll_speed  # pixels per second
         
         # Initialize workshop loader
         self.workshop_loader = workshop_loader(get_current_datetime)
@@ -218,7 +223,7 @@ class workshop_runner:
     
     def render_workshop_time(self, canvas: Canvas, x: int, y: int, workshop: Workshop) -> int:
         """
-        Render the time until a workshop starts.
+        Render the time until a workshop starts with a black background.
         
         Args:
             canvas: Canvas to render on
@@ -230,6 +235,21 @@ class workshop_runner:
             Width of the rendered text
         """
         time_text = self.format_time_until(workshop.minutes_until_workshop)
+        
+        # Calculate the width of the time text
+        time_width = self.calculate_text_width(self.workshop_font, time_text)
+        
+        # Draw a black background rectangle for the time that covers the full line height
+        for i in range(time_width):
+            for j in range(-self.workshop_font.height, self.line_height - self.workshop_font.baseline):
+                self.graphic_interface.DrawLine(
+                    canvas,
+                    x + i, y + j,
+                    x + i, y + j,
+                    self.background_color
+                )
+        
+        # Draw the time text on top of the black background
         return self.graphic_interface.DrawText(
             canvas, self.workshop_font, x, y, self.text_color, time_text
         )
@@ -266,18 +286,33 @@ class workshop_runner:
         Returns:
             Width of the rendered text
         """
-        # Calculate available width for the name
-        available_width = max_width - self.chevron_width
+        # Calculate available width for the name (excluding chevron space)
+        available_width = max_width
         
         # Calculate the total width of the workshop name
         name_width = self.calculate_text_width(self.workshop_font, workshop.title)
         
         # Determine if we need to scroll the text
-        needs_scrolling = name_width > (available_width + 4)
+        needs_scrolling = name_width > available_width
         
-        # Get current time for scrolling animation
+        # Get current time for scrolling animation with configurable speed
         current_time = time.time()
-        scroll_position = int((current_time * 30) % (name_width + available_width)) if needs_scrolling else 0
+        if needs_scrolling:
+            # Calculate how far we need to scroll before resetting
+            # We want to scroll until the end of the text is just past the visible area
+            scroll_distance = name_width
+            
+            # Time to complete one scroll cycle (in seconds)
+            cycle_time = scroll_distance / self.scroll_speed
+            
+            # Current position in the cycle
+            cycle_position = (current_time % cycle_time) / cycle_time
+            
+            # Convert to pixel position - start with text at right edge
+            # and scroll until the end of text is just past the left edge
+            scroll_position = int(cycle_position * scroll_distance)
+        else:
+            scroll_position = 0
         
         # Render the workshop name with scrolling if needed
         if needs_scrolling:
@@ -291,9 +326,32 @@ class workshop_runner:
                 canvas, self.workshop_font, x, y, self.text_color, workshop.title
             )
         
-        # Render chevron if this is the current workshop
+        return name_width
+    
+    def render_chevron(self, canvas: Canvas, x: int, y: int, is_current: bool) -> None:
+        """
+        Render a chevron indicator with a black background.
+        
+        Args:
+            canvas: Canvas to render on
+            x: X coordinate
+            y: Y coordinate
+            is_current: Whether to render the chevron
+        """
+        # Always draw the black background for the chevron column
+        for i in range(self.chevron_width):
+            for j in range(-self.workshop_font.height, self.line_height - self.workshop_font.baseline):
+                self.graphic_interface.DrawLine(
+                    canvas,
+                    x + i, y + j,
+                    x + i, y + j,
+                    self.background_color
+                )
+        
+        # Only draw the chevron if this is the current workshop
         if is_current:
-            chevron_x = x + available_width
+            # Calculate center of chevron area
+            chevron_x = x + 2
             chevron_y = y
             
             # Draw a simple chevron (triangle) pointing inward
@@ -309,8 +367,6 @@ class workshop_runner:
                 chevron_x + 5, chevron_y + 3, 
                 self.chevron_color
             )
-        
-        return name_width
     
     def render_workshop(self, canvas: Canvas, pixel_offset: int, workshop: Workshop, is_current: bool) -> None:
         """
@@ -325,18 +381,22 @@ class workshop_runner:
         # Apply screen margin
         y_position = pixel_offset + self.workshop_font.baseline + self.screen_margin
         
-        # Render time
-        time_width = self.render_workshop_time(
-            canvas, self.screen_margin, y_position, workshop
-        )
-        
-        # Render name
+        # Render name first (it goes in the middle)
         name_x = self.screen_margin + self.time_width
         name_max_width = self.available_name_width
         
         self.render_workshop_name(
             canvas, name_x, y_position, 
             workshop, name_max_width, is_current
+        )
+        
+        # Render chevron (it goes on the right)
+        chevron_x = self.screen_margin + self.time_width + self.available_name_width
+        self.render_chevron(canvas, chevron_x, y_position, is_current)
+        
+        # Render time last (it goes on the left)
+        time_width = self.render_workshop_time(
+            canvas, self.screen_margin, y_position, workshop
         )
     
     def render_location(self, canvas: Canvas) -> None:
