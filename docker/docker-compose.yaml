@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  ws_display:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    privileged: true  # Required for GPIO access
+    restart: unless-stopped
+    ports:
+      - "7860:7860"  # Expose Gradio web UI
+    volumes:
+      - ../runtime_artifacts:/app/runtime_artifacts  # Mount runtime artifacts for persistence
+    devices:
+      - /dev/gpiomem:/dev/gpiomem  # Access to GPIO
+      - /dev/mem:/dev/mem  # Required for direct memory access
+    environment:
+      - TZ=Europe/Berlin  # Set timezone
