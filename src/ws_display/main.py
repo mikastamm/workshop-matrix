@@ -134,25 +134,6 @@ class MatrixApp:
             self.logger.info("Renderer stopped")
             self.running = False
     
-    def restart_renderer(self):
-        """
-        Restart the renderer (called when configuration changes).
-        """
-        self.logger.info("Restarting renderer")
-        
-        # Stop the current renderer
-        self.running = False
-        if self.renderer_task and not self.renderer_task.done():
-            # Wait for the task to complete
-            # In a real implementation, you might want to use asyncio.wait_for with a timeout
-            pass
-        
-        # Create a new graphic interface with updated config
-        self.graphic_interface = self._create_graphic_interface()
-        
-        # Start a new renderer task
-        self.renderer_task = asyncio.create_task(self.run_renderer())
-    
     async def run(self):
         """
         Run the application.

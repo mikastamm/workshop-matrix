@@ -1,6 +1,5 @@
 # Core dependencies
 PyYAML>=6.0 # For configuration loading/saving
 Pillow>=9.0 # For emulated graphics rendering
-gradio>=4.0 # For the web UI (even if not fully implemented yet)
 
 # Add other desktop-specific dependencies here if needed

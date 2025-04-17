@@ -1,7 +1,6 @@
 # Core dependencies
 PyYAML>=6.0 # For configuration loading/saving
 # Note: Pillow is NOT included here unless specifically needed on Pi for other tasks
-gradio>=4.0 # For the web UI
 
 # Raspberry Pi specific dependencies
 # The 'rgbmatrix' package comes from the rpi-rgb-led-matrix library build process
