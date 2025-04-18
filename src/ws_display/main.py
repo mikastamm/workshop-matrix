@@ -4,12 +4,15 @@ import platform
 import sys
 import time
 import tkinter as tk
-from typing import Optional, cast
+from typing import Optional, cast, List
 
 from src.logging import Logger
 from src.ws_display.Config import Config
 from src.ws_display.config_loader import get_config
 from src.ws_display.renderer.graphic_interface import Font, GraphicInterface, Color
+from src.ws_display.program_runner import program_runner
+from src.ws_display.workshop_runner import workshop_runner
+from src.ws_display.screensavers.gnome_message_runner import gnome_message_runner
 from src.ws_display.renderer.emulated_graphics_interface import EmulatedFont
 
 class MatrixApp:
@@ -106,19 +109,19 @@ class MatrixApp:
         # Create a canvas
         offscreen_canvas = self.graphic_interface.CreateFrameCanvas()
         
-        # Set up workshop runner
-        from datetime import datetime
-        from src.ws_display.workshop_runner import workshop_runner
-        
         # Lambda to get current datetime
+        from datetime import datetime
         get_current_datetime = lambda: datetime.now()
         
         # Configure workshop runner
         line_height = 15  # Height for each workshop line
         location_line_height = 15  # Height for the location line at the bottom
         
-        # Create workshop runner
-        runner = workshop_runner(
+        # Create program runners
+        programs: List[program_runner] = []
+        
+        # Add workshop runner
+        workshop = workshop_runner(
             graphic_interface=self.graphic_interface,
             time_font=time_font,
             name_font=name_font,
@@ -132,15 +135,38 @@ class MatrixApp:
             min_current_time=6.0,  # Minimum time to display a workshop as current (seconds)
             max_current_time=12.0  # Maximum time to display a workshop as current (seconds)
         )
+        programs.append(workshop)
+        
+        # Add gnome message runner
+        gnome = gnome_message_runner(
+            graphic_interface=self.graphic_interface,
+            message_font=name_font,
+        )
+        programs.append(gnome)
+        
+        # Program switching state
+        current_program_index = 0
+        last_program_switch_time = time.time()
+        program_switch_interval = 10.0  # Switch programs every 10 seconds
         
         while self.running:
-            # Render workshops using the workshop runner
-            offscreen_canvas = runner.render(offscreen_canvas)
-                
-                # Swap canvas
+            # Check if we need to switch programs
+            current_time = time.time()
+            if current_time - last_program_switch_time >= program_switch_interval:
+                current_program_index = (current_program_index + 1) % len(programs)
+                last_program_switch_time = current_time
+                self.logger.info(f"Switching to program {current_program_index}")
+            
+            # Get the current program runner
+            current_program = programs[current_program_index]
+            
+            # Render using the current program runner
+            offscreen_canvas = current_program.render(offscreen_canvas)
+            
+            # Swap canvas
             offscreen_canvas = self.graphic_interface.SwapOnVSync(offscreen_canvas)
-                
-                # Sleep to control frame rate
+            
+            # Sleep to control frame rate
             await asyncio.sleep(0.015)
        
     

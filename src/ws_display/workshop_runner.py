@@ -5,8 +5,9 @@ from typing import List, Callable, Optional, Tuple, Dict
 from src.logging import Logger
 from src.ws_display.workshop_loader import workshop_loader, Workshop, Workshops
 from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas, Font, Color
+from src.ws_display.program_runner import program_runner
 
-class workshop_runner:
+class workshop_runner(program_runner):
     """
     Class responsible for rendering workshops on the display.
     """
@@ -47,8 +48,8 @@ class workshop_runner:
             workshop_update_interval: Seconds between workshop list updates
             future_time_limit: Maximum minutes in the future to display workshops
         """
+        super().__init__(graphic_interface)
         self.logger = Logger.get_logger()
-        self.graphic_interface = graphic_interface
         self.time_font = time_font
         self.name_font = name_font
         self.location_font = location_font
@@ -549,6 +550,19 @@ class workshop_runner:
                         self.chevron_color
                     )
     
+    def calculate_time_width(self, workshop: Workshop) -> int:
+        """
+        Calculate the width of the time display for a workshop.
+        
+        Args:
+            workshop: Workshop to calculate time width for
+            
+        Returns:
+            Width of the time display in pixels
+        """
+        time_text = self.format_time_until(workshop.minutes_until_workshop)
+        return self.calculate_text_width(self.time_font, time_text)
+    
     def render_workshop(self, canvas: Canvas, pixel_offset: int, workshop: Workshop, is_current: bool, workshop_index: int) -> None:
         """
         Render a workshop line.
@@ -563,8 +577,11 @@ class workshop_runner:
         name_y_position = pixel_offset + self.name_font.baseline + self.screen_margin
         time_y_position = pixel_offset + self.time_font.baseline + self.screen_margin
         
+        # Calculate time width first (needed for positioning)
+        time_width = self.calculate_time_width(workshop)
+        
         # Render name first (it goes in the middle)
-        name_x = self.screen_margin + self.time_width + self.time_block_margin
+        name_x = self.screen_margin + time_width + 1  # +1 for a small gap
         name_max_width = self.available_name_width
         
         self.render_workshop_name(
@@ -576,8 +593,8 @@ class workshop_runner:
         chevron_x = self.screen_margin + self.time_width + self.available_name_width
         self.render_chevron(canvas, chevron_x, name_y_position, is_current)
         
-        # Render time last (it goes on the left)
-        time_width = self.render_workshop_time(
+        # Render time last (it goes on the left, but renders on top of everything)
+        self.render_workshop_time(
             canvas, self.screen_margin, time_y_position, workshop
         )
     
