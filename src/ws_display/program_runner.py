@@ -16,6 +16,16 @@ class program_runner(ABC):
             graphic_interface: The graphic interface to render on
         """
         self.graphic_interface = graphic_interface
+
+    def is_screen_saver(self) -> bool:
+        """
+        Screensaver programs can be choosen randomly, which happens automatically after some delay.
+        Set this to false if you want full control over when to start the program.
+        
+        Returns:
+            True if it is a screensaver, False otherwise
+        """
+        return False
     
     @abstractmethod
     def render(self, canvas: Canvas) -> render_result:

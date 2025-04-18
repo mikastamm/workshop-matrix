@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 
 from src.logging import Logger
 from src.ws_display.program_runner import program_runner
-from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas, Color
+from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas, Color, BlendMode
 from src.ws_display.render_result import render_result
 
 
@@ -35,8 +35,8 @@ class burn_program_runner(program_runner):
         # Inversion state parameters
         self.invert_active = False
         self.last_invert_start_time = time.time()
-        self.invert_start_interval = 5.0  # Start inversion every 5 seconds
-        self.invert_duration = 1.0  # Inversion lasts for 1 second
+        self.invert_start_interval = 10.0  # Start inversion every 5 seconds
+        self.invert_duration = 5.0  # Inversion lasts for 1 second
         
         # Colors
         self.COLOR_RED = Color(255, 0, 0)
@@ -114,7 +114,8 @@ class burn_program_runner(program_runner):
         # Set state based on inversion
         current_font = self.inverted_font if self.invert_active else self.default_font
         text_color = self.COLOR_BLACK if self.invert_active else self.COLOR_RED
-        image_tint = self.COLOR_BLACK if self.invert_active else self.COLOR_RED
+        image_tint = self.COLOR_RED if self.invert_active else self.COLOR_RED
+        blend_mode = BlendMode.INVERT_MULTIPLY if self.invert_active else BlendMode.NORMAL
         
         # If inverted, draw red background
         if self.invert_active:
@@ -129,14 +130,15 @@ class burn_program_runner(program_runner):
             center_x = canvas.width // 2
             center_y = canvas.height // 2 - 6
             
-            # Render image at center of screen
+            # Render image at center of screen with appropriate blend mode
             self.graphic_interface.RenderImage(
                 canvas,
                 current_image,
                 center_x,
                 center_y,
                 origin="center-center",
-                tint=image_tint
+                tint=image_tint,
+                blend_mode=blend_mode
             )
             
             # Draw "NOT A CULT" text below the image

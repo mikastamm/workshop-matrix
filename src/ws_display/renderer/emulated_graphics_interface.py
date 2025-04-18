@@ -23,6 +23,12 @@ class EmulatedCanvas(Canvas):
         if 0 <= x < self._width and 0 <= y < self._height:
             self._image.putpixel((x, y), (color.red, color.green, color.blue))
     
+    def GetPixel(self, x: int, y: int) -> Color:
+        if 0 <= x < self._width and 0 <= y < self._height:
+            r, g, b = self._image.getpixel((x, y))
+            return Color(r, g, b)
+        return Color(0, 0, 0)  # Return black for out-of-bounds pixels
+    
     @property
     def width(self) -> int:
         return self._width

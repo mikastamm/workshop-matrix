@@ -100,5 +100,6 @@ class eye_program_runner(program_runner):
             self.logger.warning(f"Eye image '{self.current_image_name}' could not be loaded")
         
         # Check if we should finish the program (when showing the closed eye)
-
+        if is_finished:
+            self.current_image_name = "eye"
         return render_result(canvas, is_finished)

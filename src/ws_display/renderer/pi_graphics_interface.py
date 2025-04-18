@@ -3,17 +3,30 @@ import os
 from PIL import Image
 
 from src.logging import Logger
-from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas, Font, Color, MatrixImage
+from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas, Font, Color, MatrixImage, BlendMode
 
 class PiCanvas(Canvas):
     def __init__(self, rgbmatrix_canvas: Any):
         self._canvas = rgbmatrix_canvas
+        # Create a pixel cache to track pixel values (needed for GetPixel)
+        self._pixel_cache = {}
     
     def Clear(self) -> None:
         self._canvas.Clear()
+        self._pixel_cache.clear()
     
     def SetPixel(self, x: int, y: int, color: Color) -> None:
         self._canvas.SetPixel(x, y, color.red, color.green, color.blue)
+        # Update pixel cache
+        self._pixel_cache[(x, y)] = (color.red, color.green, color.blue)
+    
+    def GetPixel(self, x: int, y: int) -> Color:
+        # Check if pixel is in cache
+        if (x, y) in self._pixel_cache:
+            r, g, b = self._pixel_cache[(x, y)]
+            return Color(r, g, b)
+        # If not in cache, return black
+        return Color(0, 0, 0)
     
     @property
     def width(self) -> int:
@@ -196,9 +209,10 @@ class PiGraphicInterface(GraphicInterface):
     def RenderImage(self, canvas: Canvas, image: MatrixImage, x: int, y: int, 
                    origin: Literal["center-center", "left-mid", "left-top", "left-bot", 
                                   "right-mid", "right-top", "right-bot"] = "center-center",
-                   tint: Optional[Color] = None) -> None:
+                   tint: Optional[Color] = None,
+                   blend_mode: BlendMode = BlendMode.NORMAL) -> None:
         """
-        Render an image on the canvas.
+        Render an image on the canvas with optional blend modes.
         
         Args:
             canvas: Canvas to render on
@@ -207,6 +221,7 @@ class PiGraphicInterface(GraphicInterface):
             y: Y coordinate
             origin: Origin point of the image relative to coordinates
             tint: Optional color to tint the image with
+            blend_mode: Blend mode to use when compositing image onto canvas
         """
         if not isinstance(canvas, PiCanvas):
             raise TypeError("Canvas must be a PiCanvas")
@@ -258,6 +273,52 @@ class PiGraphicInterface(GraphicInterface):
                         g = (g * tint.green) // 255
                         b = (b * tint.blue) // 255
                     
-                    # Set pixel on canvas if not fully transparent (black)
-                    if r > 0 or g > 0 or b > 0:
+                    # Skip fully black (transparent) pixels
+                    if r == 0 and g == 0 and b == 0:
+                        continue
+                    
+                    # Apply blend mode
+                    if blend_mode == BlendMode.NORMAL:
+                        # Just set the pixel with image color
                         canvas.SetPixel(canvas_x, canvas_y, Color(r, g, b))
+                    else:
+                        # Get the canvas pixel's current color
+                        canvas_color = canvas.GetPixel(canvas_x, canvas_y)
+                        
+                        # Perform blending based on selected mode
+                        if blend_mode == BlendMode.MULTIPLY:
+                            # Multiply: multiply each channel
+                            blended_r = (r * canvas_color.red) // 255
+                            blended_g = (g * canvas_color.green) // 255
+                            blended_b = (b * canvas_color.blue) // 255
+                            
+                        elif blend_mode == BlendMode.INVERT_MULTIPLY:
+                            # Invert Multiply: invert image, then multiply
+                            inv_r = 255 - r
+                            inv_g = 255 - g
+                            inv_b = 255 - b
+                            blended_r = (inv_r * canvas_color.red) // 255
+                            blended_g = (inv_g * canvas_color.green) // 255
+                            blended_b = (inv_b * canvas_color.blue) // 255
+                            
+                        elif blend_mode == BlendMode.SUBTRACT:
+                            # Subtract: canvas - image (clamped to 0)
+                            blended_r = max(0, canvas_color.red - r)
+                            blended_g = max(0, canvas_color.green - g)
+                            blended_b = max(0, canvas_color.blue - b)
+                            
+                        elif blend_mode == BlendMode.LIGHTER_COLOR:
+                            # Lighter Color: take the color with higher brightness
+                            img_brightness = r + g + b
+                            canvas_brightness = canvas_color.red + canvas_color.green + canvas_color.blue
+                            
+                            if img_brightness > canvas_brightness:
+                                blended_r, blended_g, blended_b = r, g, b
+                            else:
+                                blended_r = canvas_color.red
+                                blended_g = canvas_color.green
+                                blended_b = canvas_color.blue
+                        
+                        # Set the blended pixel on canvas if not fully black
+                        if blended_r > 0 or blended_g > 0 or blended_b > 0:
+                            canvas.SetPixel(canvas_x, canvas_y, Color(blended_r, blended_g, blended_b))

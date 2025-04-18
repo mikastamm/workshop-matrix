@@ -1,7 +1,18 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Optional, Tuple, Any, List, Literal
 import os
 from PIL import Image
+
+class BlendMode(Enum):
+    """
+    Enum for different blend modes when rendering images.
+    """
+    NORMAL = 0
+    MULTIPLY = 1
+    INVERT_MULTIPLY = 2
+    SUBTRACT = 3
+    LIGHTER_COLOR = 4
 
 class Color:
     def __init__(self, red: int = 0, green: int = 0, blue: int = 0):
@@ -70,6 +81,11 @@ class Canvas(ABC):
     @abstractmethod
     def SetPixel(self, x: int, y: int, color: Color) -> None:
         """Set a pixel on the canvas."""
+        pass
+    
+    @abstractmethod
+    def GetPixel(self, x: int, y: int) -> Color:
+        """Get the color of a pixel on the canvas."""
         pass
     
     @property
@@ -261,9 +277,10 @@ class GraphicInterface(ABC):
     def RenderImage(self, canvas: Canvas, image: MatrixImage, x: int, y: int, 
                    origin: Literal["center-center", "left-mid", "left-top", "left-bot", 
                                   "right-mid", "right-top", "right-bot"] = "center-center",
-                   tint: Optional[Color] = None) -> None:
+                   tint: Optional[Color] = None,
+                   blend_mode: BlendMode = BlendMode.NORMAL) -> None:
         """
-        Render an image on the canvas.
+        Render an image on the canvas with optional blend modes.
         
         Args:
             canvas: Canvas to render on
@@ -272,6 +289,7 @@ class GraphicInterface(ABC):
             y: Y coordinate
             origin: Origin point of the image relative to coordinates
             tint: Optional color to tint the image with
+            blend_mode: Blend mode to use when compositing image onto canvas
         """
         # Calculate offsets based on origin
         offset_x, offset_y = 0, 0
@@ -311,8 +329,12 @@ class GraphicInterface(ABC):
                     img_y < len(image.pixel_data) and 
                     img_x < len(image.pixel_data[img_y])):
                     
-                    # Get pixel color
+                    # Get pixel color from image
                     r, g, b = image.pixel_data[img_y][img_x]
+                    
+                    # Skip fully black (transparent) pixels
+                    if r == 0 and g == 0 and b == 0:
+                        continue
                     
                     # Apply tint if provided
                     if tint:
@@ -320,6 +342,48 @@ class GraphicInterface(ABC):
                         g = (g * tint.green) // 255
                         b = (b * tint.blue) // 255
                     
-                    # Set pixel on canvas
-                    if r > 0 or g > 0 or b > 0:  # Skip fully black (transparent) pixels
+                    # Apply blend mode
+                    if blend_mode == BlendMode.NORMAL:
+                        # Just set the pixel with image color
                         canvas.SetPixel(canvas_x, canvas_y, Color(r, g, b))
+                    else:
+                        # Get the canvas pixel's current color
+                        canvas_color = canvas.GetPixel(canvas_x, canvas_y)
+                        
+                        # Perform blending based on selected mode
+                        if blend_mode == BlendMode.MULTIPLY:
+                            # Multiply: multiply each channel
+                            blended_r = (r * canvas_color.red) // 255
+                            blended_g = (g * canvas_color.green) // 255
+                            blended_b = (b * canvas_color.blue) // 255
+                            
+                        elif blend_mode == BlendMode.INVERT_MULTIPLY:
+                            # Invert Multiply: invert image, then multiply
+                            inv_r = 255 - r
+                            inv_g = 255 - g
+                            inv_b = 255 - b
+                            blended_r = (inv_r * canvas_color.red) // 255
+                            blended_g = (inv_g * canvas_color.green) // 255
+                            blended_b = (inv_b * canvas_color.blue) // 255
+                            
+                        elif blend_mode == BlendMode.SUBTRACT:
+                            # Subtract: canvas - image (clamped to 0)
+                            blended_r = max(0, canvas_color.red - r)
+                            blended_g = max(0, canvas_color.green - g)
+                            blended_b = max(0, canvas_color.blue - b)
+                            
+                        elif blend_mode == BlendMode.LIGHTER_COLOR:
+                            # Lighter Color: take the color with higher brightness
+                            img_brightness = r + g + b
+                            canvas_brightness = canvas_color.red + canvas_color.green + canvas_color.blue
+                            
+                            if img_brightness > canvas_brightness:
+                                blended_r, blended_g, blended_b = r, g, b
+                            else:
+                                blended_r = canvas_color.red
+                                blended_g = canvas_color.green
+                                blended_b = canvas_color.blue
+                        
+                        # Set the blended pixel on canvas if not fully black
+                        if blended_r > 0 or blended_g > 0 or blended_b > 0:
+                            canvas.SetPixel(canvas_x, canvas_y, Color(blended_r, blended_g, blended_b))
