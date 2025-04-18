@@ -1,6 +1,7 @@
 from src.logging import Logger
 from src.ws_display.program_runner import program_runner
 from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas, Color, Font
+from src.ws_display.render_result import render_result
 
 
 class gnome_message_runner(program_runner):
@@ -32,7 +33,7 @@ class gnome_message_runner(program_runner):
         self.image_tint = Color(255, 0, 0)  # Red
         self.background_color = Color(0, 0, 0)  # Black background
     
-    def render(self, canvas: Canvas) -> Canvas:
+    def render(self, canvas: Canvas) -> render_result:
         """
         Render the gnome image and message.
         
@@ -40,7 +41,7 @@ class gnome_message_runner(program_runner):
             canvas: Canvas to render on
             
         Returns:
-            Updated canvas
+            render_result containing the updated canvas and a finished flag
         """
         # Clear the canvas
         canvas.Clear()
@@ -51,7 +52,7 @@ class gnome_message_runner(program_runner):
             
             # Calculate the center of the screen
             center_x = canvas.width // 2
-            center_y = canvas.height // 2 - 9 # Slightly above center to make room for text
+            center_y = canvas.height // 2 - 8  # Slightly above center to make room for text
             
             # Render the gnome image
             self.graphic_interface.RenderImage(
@@ -72,7 +73,7 @@ class gnome_message_runner(program_runner):
             text_line1_y = center_y + gnome_img.height // 2 + 5  # Below the image
             
             text_line2_x = center_x - message_line2_width // 2
-            text_line2_y = text_line1_y + self.message_font.height - 2  # Below the first line with spacing
+            text_line2_y = text_line1_y + self.message_font.height - 3  # Below the first line with spacing
             
             # Render both lines of the message
             self.graphic_interface.DrawText(
@@ -110,7 +111,8 @@ class gnome_message_runner(program_runner):
                 canvas, self.message_font, text_line2_x, text_line2_y, self.text_color, self.message_line2
             )
         
-        return canvas
+        # Gnome message runner never finishes on its own
+        return render_result(canvas, False)
     
     def calculate_text_width(self, font: Font, text: str) -> int:
         """

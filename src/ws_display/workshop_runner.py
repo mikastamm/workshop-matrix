@@ -6,6 +6,7 @@ from src.logging import Logger
 from src.ws_display.workshop_loader import workshop_loader, Workshop, Workshops
 from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas, Font, Color
 from src.ws_display.program_runner import program_runner
+from src.ws_display.render_result import render_result
 
 class workshop_runner(program_runner):
     """
@@ -617,7 +618,7 @@ class workshop_runner(program_runner):
             canvas, self.location_font, self.screen_margin, y_pos, self.location_color, location_text
         )
     
-    def render(self, canvas: Canvas) -> Canvas:
+    def render(self, canvas: Canvas) -> render_result:
         """
         Render all workshops and the current location.
         
@@ -625,7 +626,7 @@ class workshop_runner(program_runner):
             canvas: Canvas to render on
             
         Returns:
-            Updated canvas
+            render_result containing the updated canvas and a finished flag
         """
         # Check if we need to update workshops
         self.may_update_workshops()
@@ -635,7 +636,8 @@ class workshop_runner(program_runner):
         
         # If we have no workshops to display, use screen saver
         if self.screen_saver_fn is not None:
-            return self.screen_saver_fn(canvas)
+            updated_canvas = self.screen_saver_fn(canvas)
+            return render_result(updated_canvas, False)  # Screen saver never finishes
         
         # Clear the canvas
         canvas.Clear()
@@ -649,4 +651,5 @@ class workshop_runner(program_runner):
         # Render the current location
         self.render_location(canvas)
         
-        return canvas
+        # Workshop runner never finishes on its own
+        return render_result(canvas, False)

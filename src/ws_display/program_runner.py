@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas
+from src.ws_display.render_result import render_result
 
 
 class program_runner(ABC):
@@ -17,7 +18,7 @@ class program_runner(ABC):
         self.graphic_interface = graphic_interface
     
     @abstractmethod
-    def render(self, canvas: Canvas) -> Canvas:
+    def render(self, canvas: Canvas) -> render_result:
         """
         Render the program on the canvas.
         
@@ -25,6 +26,6 @@ class program_runner(ABC):
             canvas: Canvas to render on
             
         Returns:
-            Updated canvas
+            render_result containing the updated canvas and a finished flag
         """
         pass

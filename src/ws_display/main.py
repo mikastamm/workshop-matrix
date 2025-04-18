@@ -13,6 +13,10 @@ from src.ws_display.renderer.graphic_interface import Font, GraphicInterface, Co
 from src.ws_display.program_runner import program_runner
 from src.ws_display.workshop_runner import workshop_runner
 from src.ws_display.screensavers.gnome_message_runner import gnome_message_runner
+from src.ws_display.screensavers.eye_program_runner import eye_program_runner
+from src.ws_display.screensavers.teeth_program_runner import teeth_program_runner
+from src.ws_display.screensavers.care_bear_program_runner import care_bear_program_runner
+from src.ws_display.render_result import render_result
 from src.ws_display.renderer.emulated_graphics_interface import EmulatedFont
 
 class MatrixApp:
@@ -120,7 +124,16 @@ class MatrixApp:
         # Create program runners
         programs: List[program_runner] = []
         
-        # Add workshop runner
+      
+        
+        # Add eye program runner
+        eye = eye_program_runner(
+            graphic_interface=self.graphic_interface,
+            target_width=80,  # Scale eye images to reasonable size
+            target_height=80,  # Scale eye images to reasonable size
+        )
+
+          # Add workshop runner
         workshop = workshop_runner(
             graphic_interface=self.graphic_interface,
             time_font=time_font,
@@ -135,36 +148,55 @@ class MatrixApp:
             min_current_time=6.0,  # Minimum time to display a workshop as current (seconds)
             max_current_time=12.0  # Maximum time to display a workshop as current (seconds)
         )
-        programs.append(workshop)
-        
-        # Add gnome message runner
+                # Add gnome message runner
         gnome = gnome_message_runner(
             graphic_interface=self.graphic_interface,
             message_font=name_font,
         )
+        
+        # Add teeth program runner
+        teeth = teeth_program_runner(
+            graphic_interface=self.graphic_interface,
+        )
+        
+        # Add care bears program runner
+        care_bears = care_bear_program_runner(
+            graphic_interface=self.graphic_interface,
+        )
+        
+        programs.append(care_bears)
+        programs.append(teeth)
+        programs.append(eye)
+        programs.append(workshop)
         programs.append(gnome)
         
         # Program switching state
         current_program_index = 0
         last_program_switch_time = time.time()
-        program_switch_interval = 20.0  # Switch programs every 10 seconds
+        program_switch_interval = 30.0  # Switch programs every 10 seconds
         
         while self.running:
-            # Check if we need to switch programs
-            current_time = time.time()
-            if current_time - last_program_switch_time >= program_switch_interval:
-                current_program_index = (current_program_index + 1) % len(programs)
-                last_program_switch_time = current_time
-                self.logger.info(f"Switching to program {current_program_index}")
-            
             # Get the current program runner
             current_program = programs[current_program_index]
             
             # Render using the current program runner
-            offscreen_canvas = current_program.render(offscreen_canvas)
+            result = current_program.render(offscreen_canvas)
+            
+            # Check if the program has finished
+            if result.finished:
+                self.logger.info(f"Program {current_program_index} finished, switching to next program")
+                current_program_index = (current_program_index + 1) % len(programs)
+                last_program_switch_time = time.time()
+            else:
+                # Check if we need to switch programs based on time
+                current_time = time.time()
+                if current_time - last_program_switch_time >= program_switch_interval:
+                    current_program_index = (current_program_index + 1) % len(programs)
+                    last_program_switch_time = current_time
+                    self.logger.info(f"Switching to program {current_program_index}")
             
             # Swap canvas
-            offscreen_canvas = self.graphic_interface.SwapOnVSync(offscreen_canvas)
+            offscreen_canvas = self.graphic_interface.SwapOnVSync(result.canvas)
             
             # Sleep to control frame rate
             await asyncio.sleep(0.015)

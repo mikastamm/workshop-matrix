@@ -232,9 +232,22 @@ class GraphicInterface(ABC):
         
         # Resize the image if target dimensions are specified
         if target_width is not None or target_height is not None:
-            # Calculate new dimensions
-            new_width = target_width if target_width is not None else img.width
-            new_height = target_height if target_height is not None else img.height
+            # Get original aspect ratio
+            aspect_ratio = img.width / img.height
+            
+            # Calculate new dimensions respecting aspect ratio
+            if target_width is not None and target_height is not None:
+                # Both dimensions provided, use as is
+                new_width = target_width
+                new_height = target_height
+            elif target_width is not None:
+                # Only width provided, calculate height based on aspect ratio
+                new_width = target_width
+                new_height = int(target_width / aspect_ratio)
+            else:  # target_height is not None
+                # Only height provided, calculate width based on aspect ratio
+                new_height = target_height
+                new_width = int(target_height * aspect_ratio)
             
             # Resize using nearest neighbor resampling
             img = img.resize((new_width, new_height), Image.NEAREST)
