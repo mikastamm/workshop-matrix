@@ -14,6 +14,14 @@ class burn_program_runner(program_runner):
     Every 5 seconds, for 1 second, the display is inverted with a red background,
     black text, and the image tinted red.
     """
+    def get_play_duration_seconds(self) -> float:
+        """
+        Get the duration in seconds that this program should play before switching to another program.
+        
+        Returns:
+            Duration in seconds, or None if the program should run indefinitely
+        """
+        return 10.0
     def __init__(
         self,
         graphic_interface: GraphicInterface,

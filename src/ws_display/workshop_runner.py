@@ -12,6 +12,14 @@ class workshop_runner(program_runner):
     """
     Class responsible for rendering workshops on the display.
     """
+    def get_play_duration_seconds(self) -> float:
+        """
+        Get the duration in seconds that this program should play before switching to another program.
+        
+        Returns:
+            Duration in seconds, or None if the program should run indefinitely
+        """
+        return None
     def __init__(
         self,
         graphic_interface: GraphicInterface,

@@ -12,6 +12,15 @@ class eye_program_runner(program_runner):
     Program runner that displays eye animation sequence.
     Displays eye images in sequence and ends when the closed eye is shown.
     """
+    def is_screen_saver(self) -> bool:
+        """
+        Screensaver programs can be choosen randomly, which happens automatically after some delay.
+        Set this to false if you want full control over when to start the program.
+        
+        Returns:
+            True if it is a screensaver, False otherwise
+        """
+        return True
     def __init__(
         self,
         graphic_interface: GraphicInterface,

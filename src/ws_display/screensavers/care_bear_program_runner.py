@@ -13,6 +13,15 @@ class care_bear_program_runner(program_runner):
     Shows the Care Bears image in the center with "CARE BEARS" scrolling text
     above and below in different colors.
     """
+    def is_screen_saver(self) -> bool:
+        """
+        Screensaver programs can be choosen randomly, which happens automatically after some delay.
+        Set this to false if you want full control over when to start the program.
+        
+        Returns:
+            True if it is a screensaver, False otherwise
+        """
+        return True
     def __init__(
         self,
         graphic_interface: GraphicInterface,
