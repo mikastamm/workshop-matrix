@@ -24,7 +24,7 @@ class teeth_program_runner(program_runner):
         self.logger = Logger.get_logger()
         
         # Colors
-        self.image_tint = Color(0, 0,255)  # Red tint
+        self.image_tint = Color(20, 100,255)  # Red tint
         self.background_color = Color(0, 0, 0)  # Black background
     
     def render(self, canvas: Canvas) -> render_result:
@@ -58,8 +58,7 @@ class teeth_program_runner(program_runner):
                 teeth_img,
                 center_x,
                 center_y,
-                origin="center-center",
-                tint=self.image_tint
+                origin="center-center"
             )
             
         except FileNotFoundError:

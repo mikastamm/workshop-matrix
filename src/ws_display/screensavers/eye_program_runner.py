@@ -67,15 +67,17 @@ class eye_program_runner(program_runner):
         """
         # Clear the canvas
         canvas.Clear()
-        
+        is_finished = False
         # Check if it's time to change the image
         current_time = time.time()
         if current_time - self.last_image_change_time >= self.image_display_time:
             self.current_image_index = (self.current_image_index + 1) % len(self.image_names)
             self.last_image_change_time = current_time
-        
+            is_finished = self.current_image_name == "eyeClose"
+            if is_finished:
+                self.current_image_index -= 1  # Stay on the closed eye for the last frame
+            
         # Get the current image name
-        self.prev_image_name = self.current_image_name
         self.current_image_name = self.image_names[self.current_image_index]
         
         # Get the preloaded image
@@ -98,7 +100,5 @@ class eye_program_runner(program_runner):
             self.logger.warning(f"Eye image '{self.current_image_name}' could not be loaded")
         
         # Check if we should finish the program (when showing the closed eye)
-        is_finished = self.prev_image_name == "eyeClose"
-        if is_finished:
-            self.prev_image_name = ""
+
         return render_result(canvas, is_finished)

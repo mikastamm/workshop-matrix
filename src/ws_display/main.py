@@ -16,6 +16,7 @@ from src.ws_display.screensavers.gnome_message_runner import gnome_message_runne
 from src.ws_display.screensavers.eye_program_runner import eye_program_runner
 from src.ws_display.screensavers.teeth_program_runner import teeth_program_runner
 from src.ws_display.screensavers.care_bear_program_runner import care_bear_program_runner
+from src.ws_display.screensavers.burn_program_runner import burn_program_runner
 from src.ws_display.render_result import render_result
 from src.ws_display.renderer.emulated_graphics_interface import EmulatedFont
 
@@ -164,9 +165,14 @@ class MatrixApp:
             graphic_interface=self.graphic_interface,
         )
         
-        programs.append(care_bears)
-        programs.append(teeth)
+        # Add burn program runner
+        burn = burn_program_runner(
+            graphic_interface=self.graphic_interface,
+        )
+        programs.append(burn)  
         programs.append(eye)
+        programs.append(teeth)
+        programs.append(care_bears)
         programs.append(workshop)
         programs.append(gnome)
         

@@ -27,7 +27,7 @@ class care_bear_program_runner(program_runner):
         self.logger = Logger.get_logger()
         
         # Scrolling text parameters
-        self.scroll_text = "CARE BEARS "  # Space at the end for better readability during scrolling
+        self.scroll_text = "CARE BEARS   "  # Space at the end for better readability during scrolling
         self.scroll_speed = 10  # pixels per second
         self.scroll_positions = {"top": 0, "bottom": 0}
         self.last_update_time = time.time()
@@ -44,10 +44,15 @@ class care_bear_program_runner(program_runner):
             Color(0, 0, 255),    # Blue
         ]
         
-        # Load font - use a known working font (emil)
-        self.font = self.graphic_interface.CreateFont()
-        self.font.LoadFont("TenThinGuys")
-       
+        # Load font - will load the "blocks" font
+        try:
+            self.font = self.graphic_interface.CreateFont()
+            self.font.LoadFont("fonts/blocks.ttf")
+        except Exception as e:
+            self.logger.error(f"Failed to load blocks font: {e}")
+            # Try to load any available font as fallback
+            self.font = self.graphic_interface.CreateFont()
+            self.font.LoadFont("fonts/5x7.ttf")
     
     def render(self, canvas: Canvas) -> render_result:
         """
@@ -96,7 +101,7 @@ class care_bear_program_runner(program_runner):
             )
             
             # Draw scrolling text at the top of the screen
-            top_y = self.font.baseline + 2  # Just enough margin from the top edge
+            top_y = self.font.height -3  # Just enough margin from the top edge
             self.render_scrolling_text(canvas, top_y, self.scroll_positions["top"])
             
             # Draw scrolling text at the bottom of the screen
