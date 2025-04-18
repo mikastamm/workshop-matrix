@@ -10,6 +10,7 @@ from src.logging import Logger
 from src.ws_display.Config import Config
 from src.ws_display.config_loader import get_config
 from src.ws_display.renderer.graphic_interface import Font, GraphicInterface, Color
+from src.ws_display.renderer.emulated_graphics_interface import EmulatedFont
 
 class MatrixApp:
     def __init__(self):
@@ -69,7 +70,8 @@ class MatrixApp:
                 use_circles=True  # Whether to render pixels as circles
             )
     
-    def load_font(self, font_name: str) -> Optional[Font]: 
+    # Font size only for testing and only for emulated graphics interface
+    def load_font(self, font_name: str, font_size=16) -> Optional[Font]: 
         font = self.graphic_interface.CreateFont()
         try:
             # Try to load the font from the fonts directory
@@ -81,6 +83,8 @@ class MatrixApp:
                                         "fonts", font_name+".bdf")
             
             font.LoadFont(font_path)
+            if isinstance(font, EmulatedFont):
+                font._font_size = font_size  # Set font size for emulated graphics interface
             self.logger.info(f"Loaded font: {font_path}")
             return font
         except Exception as e:
@@ -94,9 +98,10 @@ class MatrixApp:
         self.logger.info("Starting renderer")
         self.running = True
         
-        # Create fonts
-        workshop_font = self.load_font("emil")
-        location_font = self.load_font("emil")  # Using the same font initially
+        # Create fonts - using different fonts for time and name
+        time_font = self.load_font("emil")
+        name_font = self.load_font("emil")  # Different font for workshop names
+        location_font = self.load_font("emil")
         
         # Create a canvas
         offscreen_canvas = self.graphic_interface.CreateFrameCanvas()
@@ -115,31 +120,27 @@ class MatrixApp:
         # Create workshop runner
         runner = workshop_runner(
             graphic_interface=self.graphic_interface,
-            workshop_font=workshop_font,
+            time_font=time_font,
+            name_font=name_font,
             location_font=location_font,
             get_current_datetime=get_current_datetime,
             line_height=line_height,
             location_line_height=location_line_height,
             screen_margin=3,  # Add screen margin as requested
+            time_block_margin=2,  # Margin between time block and workshop name
             scroll_speed=5.0  # Slower scrolling speed (pixels per second)
         )
         
-        try:
-            while self.running:
-                # Render workshops using the workshop runner
-                offscreen_canvas = runner.render(offscreen_canvas)
+        while self.running:
+            # Render workshops using the workshop runner
+            offscreen_canvas = runner.render(offscreen_canvas)
                 
                 # Swap canvas
-                offscreen_canvas = self.graphic_interface.SwapOnVSync(offscreen_canvas)
+            offscreen_canvas = self.graphic_interface.SwapOnVSync(offscreen_canvas)
                 
                 # Sleep to control frame rate
-                await asyncio.sleep(0.015)
-        except Exception as e:
-            self.logger.error(f"Error in renderer loop: {e}")
-        finally:
-            self.logger.info("Renderer stopped")
-            exit(0)
-            self.running = False
+            await asyncio.sleep(0.015)
+       
     
     async def run(self):
         """

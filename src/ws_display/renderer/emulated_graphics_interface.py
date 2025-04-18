@@ -58,6 +58,8 @@ class EmulatedFont(Font):
                 self._loaded = True
                 Logger.get_logger().warning(f"BDF fonts not fully supported in emulation. Using approximation for {file}")
             else:
+                if(file.endswith('5x7.ttf')):
+                    self._font_size = 8
                 # For TTF/OTF fonts
                 self._font_path = file
                 self._font = ImageFont.truetype(file, self._font_size)
