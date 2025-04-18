@@ -70,6 +70,10 @@ class workshop_runner:
         self.available_name_width = (self.total_width - self.time_width - self.chevron_width - 
                                     (2 * self.screen_margin) - self.time_block_margin)
         
+        # Calculate column dimensions for external use
+        self._time_column_width = self.screen_margin + self.time_width + self.time_block_margin
+        self._chevron_column_width = self.chevron_width
+        
         # Timing parameters
         self.location_display_time = location_display_time
         self.workshop_update_interval = workshop_update_interval
@@ -358,6 +362,26 @@ class workshop_runner:
         
         return name_width
     
+    @property
+    def time_column_width(self) -> int:
+        """
+        Get the width of the time column (from left edge of the screen to the end of the time column's black rectangle).
+        
+        Returns:
+            Width of the time column in pixels
+        """
+        return self._time_column_width
+    
+    @property
+    def chevron_column_width(self) -> int:
+        """
+        Get the width of the chevron column (from start of the chevron column to the right edge of the screen).
+        
+        Returns:
+            Width of the chevron column in pixels
+        """
+        return self._chevron_column_width
+    
     def render_chevron(self, canvas: Canvas, x: int, y: int, is_current: bool) -> None:
         """
         Render a chevron indicator with a black background.
@@ -385,19 +409,41 @@ class workshop_runner:
             chevron_x = x + 2
             chevron_y = y
             
-            # Draw a simple chevron (triangle) pointing inward
-            self.graphic_interface.DrawLine(
-                canvas, 
-                chevron_x + 5, chevron_y - 3, 
-                chevron_x, chevron_y, 
-                self.chevron_color
-            )
-            self.graphic_interface.DrawLine(
-                canvas, 
-                chevron_x, chevron_y, 
-                chevron_x + 5, chevron_y + 3, 
-                self.chevron_color
-            )
+            # Draw a filled triangular chevron with SetPixel
+            # Create a 7x7 triangle pointing inward (left)
+            
+            # Base height of the triangle
+            height = 7
+            
+            # Draw the filled triangle
+            for i in range(4):
+                for j in range(i+1):
+                    # Left side of triangle
+                    canvas.SetPixel(
+                        chevron_x + i, 
+                        chevron_y - j, 
+                        self.chevron_color
+                    )
+                    # Right side of triangle (skip corner pixels for rounding)
+                    if not (i == 0 and j == 0) and not (i == 3 and j == 3):
+                        canvas.SetPixel(
+                            chevron_x + i, 
+                            chevron_y + j, 
+                            self.chevron_color
+                        )
+            
+            # Add two more pixels on the right side to complete the triangle
+            for j in range(3):
+                canvas.SetPixel(
+                    chevron_x + 4, 
+                    chevron_y - j, 
+                    self.chevron_color
+                )
+                canvas.SetPixel(
+                    chevron_x + 4, 
+                    chevron_y + j, 
+                    self.chevron_color
+                )
     
     def render_workshop(self, canvas: Canvas, pixel_offset: int, workshop: Workshop, is_current: bool) -> None:
         """
