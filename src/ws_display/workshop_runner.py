@@ -90,7 +90,8 @@ class workshop_runner:
         # Scrolling state variables
         self.min_current_time = min_current_time
         self.max_current_time = max_current_time
-        self.scroll_positions: Dict[int, int] = {}  # Maps workshop index to scroll position
+        self.scroll_start_times: Dict[int, float] = {}  # Maps workshop index to scroll start time
+        self.scroll_directions: Dict[int, int] = {}  # Maps workshop index to scroll direction (1 or -1)
         
         # Colors - all red as requested
         self.text_color = Color(255, 0, 0)  # Red
@@ -227,21 +228,12 @@ class workshop_runner:
         needs_scrolling = name_width > self.available_name_width
         
         if needs_scrolling:
-            # Calculate how far we have scrolled
-            # Start position is 0, end position is name_width - available_width
-            current_position = self.scroll_positions.get(current_index, 0)
-            total_scroll_distance = name_width
-            
-            # Check if scrolling is complete or max time reached
-            if current_position >= total_scroll_distance or workshop_display_time >= self.max_current_time:
-                # Reset scroll position if we're moving to a new workshop
-                if current_position >= total_scroll_distance:
-                    self.scroll_positions.pop(current_index, None)
-                    
-                # Check if min display time has been reached
-                if workshop_display_time >= self.min_current_time:
-                    should_switch = True
-            
+            # Always switch after max time
+            if workshop_display_time >= self.max_current_time:
+                # Clear scrolling state for this workshop
+                self.scroll_start_times.pop(current_index, None)
+                self.scroll_directions.pop(current_index, None)
+                should_switch = True
         else:
             # For non-scrolling workshops, use standard display time
             if workshop_display_time >= self.location_display_time:
@@ -251,6 +243,10 @@ class workshop_runner:
         if should_switch:
             self.current_location_index = (self.current_location_index + 1) % len(self.displayed_workshops)
             self.last_location_change_time = current_time
+            # Initialize scroll state for the new workshop
+            new_index = self.current_location_index
+            self.scroll_start_times[new_index] = current_time
+            self.scroll_directions[new_index] = 1  # Start scrolling forward
             return True
         
         return False
@@ -354,26 +350,86 @@ class workshop_runner:
         
         # Only scroll if this is the current workshop and it needs scrolling
         if is_current and needs_scrolling:
-            # Get current time and calculate elapsed time
+            # Get current time
             current_time = time.time()
-            elapsed_time = current_time - self.last_location_change_time
             
-            # Calculate scroll position based on elapsed time and scroll speed
-            pixels_scrolled = int(elapsed_time * self.scroll_speed)
+            # Get or initialize the scroll start time
+            if workshop_index not in self.scroll_start_times:
+                self.scroll_start_times[workshop_index] = current_time
+                self.scroll_directions[workshop_index] = 1  # Start with forward scrolling
             
-            # Get the saved scroll position or start from beginning
-            start_position = self.scroll_positions.get(workshop_index, 0)
+            start_time = self.scroll_start_times[workshop_index]
             
-            # Add the elapsed scroll distance to the start position
-            scroll_position = start_position + pixels_scrolled
+            # Calculate elapsed time since the scroll started
+            elapsed_time = current_time - start_time
             
-            # Cap the scroll position at the maximum scroll distance
-            max_scroll = name_width
-            if scroll_position > max_scroll:
-                scroll_position = max_scroll
+            # Maximum scroll distance (when text is fully scrolled)
+            max_scroll = name_width - available_width + 20  # Add a small buffer
             
-            # Save the current scroll position for this workshop
-            self.scroll_positions[workshop_index] = scroll_position
+            # Calculate time to reach max scroll at target speed
+            time_to_max_scroll = max_scroll / self.scroll_speed
+            
+            # Time to reach the target speed (25% of total scroll time or 1 second, whichever is less)
+            acceleration_time = min(time_to_max_scroll * 0.25, 1.0)
+            
+            direction = self.scroll_directions[workshop_index]
+            
+            # Check if minimum display time has elapsed
+            workshop_display_time = current_time - self.last_location_change_time
+            
+            if elapsed_time <= acceleration_time:
+                # Ease-in: Accelerate to target speed
+                progress = elapsed_time / acceleration_time
+                current_speed = self.scroll_speed * progress
+                distance = elapsed_time * current_speed / 2  # Average speed over time
+                scroll_position = direction * distance
+            else:
+                # Constant speed after acceleration
+                # Distance covered during acceleration phase
+                accel_distance = acceleration_time * self.scroll_speed / 2
+                
+                # Distance covered at constant speed
+                constant_time = elapsed_time - acceleration_time
+                constant_distance = constant_time * self.scroll_speed
+                
+                # Total distance
+                distance = accel_distance + constant_distance
+                
+                # Check if we've reached the end of the scroll
+                if distance >= max_scroll:
+                    # If min display time hasn't elapsed, reverse direction
+                    if workshop_display_time < self.min_current_time:
+                        # Calculate how far past max_scroll we are
+                        excess = distance - max_scroll
+                        
+                        # Reverse direction
+                        if direction == 1:
+                            self.scroll_directions[workshop_index] = -1
+                            # Start scrolling from the end
+                            self.scroll_start_times[workshop_index] = current_time
+                            scroll_position = max_scroll
+                        else:
+                            # If already scrolling backward and reached start
+                            if excess >= max_scroll:
+                                self.scroll_directions[workshop_index] = 1
+                                self.scroll_start_times[workshop_index] = current_time
+                                scroll_position = 0
+                            else:
+                                # Continue scrolling backward
+                                scroll_position = max_scroll - excess
+                    else:
+                        # Min display time elapsed, cap at max_scroll
+                        scroll_position = max_scroll
+                else:
+                    # Normal scrolling within bounds
+                    scroll_position = direction * distance
+            
+            # Ensure scroll position is always positive when going forward
+            if direction == 1:
+                scroll_position = max(0, min(scroll_position, max_scroll))
+            else:
+                # When going backward, we want to go from max_scroll to 0
+                scroll_position = max(0, min(max_scroll - scroll_position, max_scroll))
         else:
             scroll_position = 0
         
