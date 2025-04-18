@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta
-from typing import List, Callable, Optional, Tuple
+from typing import List, Callable, Optional, Tuple, Dict
 
 from src.logging import Logger
 from src.ws_display.workshop_loader import workshop_loader, Workshop, Workshops
@@ -26,7 +26,9 @@ class workshop_runner:
         location_display_time: int = 5,  # seconds to display each location
         workshop_update_interval: int = 30,  # seconds between workshop list updates
         future_time_limit: int = 24 * 60,  # minutes (24 hours)
-        scroll_speed: float = 10.0  # pixels per second for scrolling text
+        scroll_speed: float = 10.0,  # pixels per second for scrolling text
+        min_current_time: float = 6.0,  # minimum time to display workshop as current (seconds)
+        max_current_time: float = 12.0  # maximum time to display workshop as current (seconds)
     ):
         """
         Initialize the workshop_runner.
@@ -84,6 +86,11 @@ class workshop_runner:
         self.current_location_index = 0
         self.last_location_change_time = time.time()
         self.last_workshop_update_time = 0
+        
+        # Scrolling state variables
+        self.min_current_time = min_current_time
+        self.max_current_time = max_current_time
+        self.scroll_positions: Dict[int, int] = {}  # Maps workshop index to scroll position
         
         # Colors - all red as requested
         self.text_color = Color(255, 0, 0)  # Red
@@ -204,9 +211,44 @@ class workshop_runner:
             return False
         
         current_time = time.time()
+        current_index = self.current_location_index
+        current_workshop = self.displayed_workshops[current_index]
         
-        # Check if enough time has passed to change the location
-        if current_time - self.last_location_change_time >= self.location_display_time:
+        # Calculate how long this workshop has been displayed
+        workshop_display_time = current_time - self.last_location_change_time
+        
+        # Check if we need to switch workshops
+        should_switch = False
+        
+        # Get the width of the workshop name
+        name_width = self.calculate_text_width(self.name_font, current_workshop.title)
+        
+        # Check if this workshop needs scrolling
+        needs_scrolling = name_width > self.available_name_width
+        
+        if needs_scrolling:
+            # Calculate how far we have scrolled
+            # Start position is 0, end position is name_width - available_width
+            current_position = self.scroll_positions.get(current_index, 0)
+            total_scroll_distance = name_width
+            
+            # Check if scrolling is complete or max time reached
+            if current_position >= total_scroll_distance or workshop_display_time >= self.max_current_time:
+                # Reset scroll position if we're moving to a new workshop
+                if current_position >= total_scroll_distance:
+                    self.scroll_positions.pop(current_index, None)
+                    
+                # Check if min display time has been reached
+                if workshop_display_time >= self.min_current_time:
+                    should_switch = True
+            
+        else:
+            # For non-scrolling workshops, use standard display time
+            if workshop_display_time >= self.location_display_time:
+                should_switch = True
+        
+        # Switch to next workshop if needed
+        if should_switch:
             self.current_location_index = (self.current_location_index + 1) % len(self.displayed_workshops)
             self.last_location_change_time = current_time
             return True
@@ -282,7 +324,7 @@ class workshop_runner:
         return width
     
     def render_workshop_name(self, canvas: Canvas, x: int, y: int, workshop: Workshop, 
-                            max_width: int, is_current: bool) -> int:
+                            max_width: int, is_current: bool, workshop_index: int) -> int:
         """
         Render the name of a workshop.
         
@@ -293,11 +335,12 @@ class workshop_runner:
             workshop: Workshop to render name for
             max_width: Maximum width for the name
             is_current: Whether this workshop is currently showing its location
+            workshop_index: Index of this workshop in the displayed_workshops list
             
         Returns:
             Width of the rendered text
         """
-        # Calculate available width for the name (excluding chevron space)
+        # Calculate available width for the name
         available_width = max_width
         
         # Calculate the total width of the workshop name
@@ -306,45 +349,31 @@ class workshop_runner:
         # Determine if we need to scroll the text
         needs_scrolling = name_width > available_width
         
-        # Static position for non-scrolling text
+        # Default to static position for workshop names
         scroll_position = 0
         
-        # Calculate scrolling for text that needs it
-        if needs_scrolling:
-            # Get current time for scrolling animation with configurable speed
+        # Only scroll if this is the current workshop and it needs scrolling
+        if is_current and needs_scrolling:
+            # Get current time and calculate elapsed time
             current_time = time.time()
+            elapsed_time = current_time - self.last_location_change_time
             
-            # We want to scroll enough so that all text is visible once
-            # First, the text scrolls in from the right until fully visible
-            # Then, it stays in place for a moment, then scrolls out to the left
+            # Calculate scroll position based on elapsed time and scroll speed
+            pixels_scrolled = int(elapsed_time * self.scroll_speed)
             
-            # Total distance to scroll = name_width
-            total_scroll = name_width
+            # Get the saved scroll position or start from beginning
+            start_position = self.scroll_positions.get(workshop_index, 0)
             
-            # Time to complete one complete scroll cycle (in seconds)
-            cycle_time = total_scroll / self.scroll_speed
+            # Add the elapsed scroll distance to the start position
+            scroll_position = start_position + pixels_scrolled
             
-            # Get current position in the cycle (0.0 to 1.0)
-            cycle_position = (current_time % cycle_time) / cycle_time
+            # Cap the scroll position at the maximum scroll distance
+            max_scroll = name_width
+            if scroll_position > max_scroll:
+                scroll_position = max_scroll
             
-            # Map the cycle position to a pixel position
-            # For first half of cycle, scroll text in from right
-            # For second half, scroll text out to left
-            if cycle_position < 0.1:
-                # Start position - text is just off right edge
-                scroll_position = 0
-            elif cycle_position < 0.5:
-                # Scrolling in from right edge at an appropriate rate
-                progress = (cycle_position - 0.1) / 0.4  # 0 to 1 for this phase
-                scroll_position = int(progress * (name_width - available_width))
-            elif cycle_position < 0.6:
-                # Pause in fully visible position
-                scroll_position = name_width - available_width
-            else:
-                # Scroll out to the left
-                progress = (cycle_position - 0.6) / 0.4  # 0 to 1 for this phase
-                scroll_position = int((name_width - available_width) + 
-                                     progress * available_width)
+            # Save the current scroll position for this workshop
+            self.scroll_positions[workshop_index] = scroll_position
         else:
             scroll_position = 0
         
@@ -464,7 +493,7 @@ class workshop_runner:
                         self.chevron_color
                     )
     
-    def render_workshop(self, canvas: Canvas, pixel_offset: int, workshop: Workshop, is_current: bool) -> None:
+    def render_workshop(self, canvas: Canvas, pixel_offset: int, workshop: Workshop, is_current: bool, workshop_index: int) -> None:
         """
         Render a workshop line.
         
@@ -484,7 +513,7 @@ class workshop_runner:
         
         self.render_workshop_name(
             canvas, name_x, name_y_position, 
-            workshop, name_max_width, is_current
+            workshop, name_max_width, is_current, workshop_index
         )
         
         # Render chevron (it goes on the right)
@@ -544,7 +573,7 @@ class workshop_runner:
         for i, workshop in enumerate(self.displayed_workshops[:self.max_workshops]):
             is_current = (i == self.current_location_index)
             pixel_offset = i * self.line_height
-            self.render_workshop(canvas, pixel_offset, workshop, is_current)
+            self.render_workshop(canvas, pixel_offset, workshop, is_current, i)
         
         # Render the current location
         self.render_location(canvas)

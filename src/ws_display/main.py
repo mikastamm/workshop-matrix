@@ -128,7 +128,9 @@ class MatrixApp:
             location_line_height=location_line_height,
             screen_margin=3,  # Add screen margin as requested
             time_block_margin=2,  # Margin between time block and workshop name
-            scroll_speed=5.0  # Slower scrolling speed (pixels per second)
+            scroll_speed=5.0,  # Slower scrolling speed (pixels per second)
+            min_current_time=6.0,  # Minimum time to display a workshop as current (seconds)
+            max_current_time=12.0  # Maximum time to display a workshop as current (seconds)
         )
         
         while self.running:
