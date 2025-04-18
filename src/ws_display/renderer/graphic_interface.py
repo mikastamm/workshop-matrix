@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple, Any, List, Literal
+import os
+from PIL import Image
 
 class Color:
     def __init__(self, red: int = 0, green: int = 0, blue: int = 0):
@@ -82,6 +84,53 @@ class Canvas(ABC):
         """Get the height of the canvas."""
         pass
 
+class MatrixImage:
+    """
+    Class representing an image for the LED matrix.
+    """
+    def __init__(self, width: int, height: int, filepath: str):
+        """
+        Initialize a new matrix image.
+        
+        Args:
+            width: Width of the image in pixels
+            height: Height of the image in pixels
+            filepath: Path to the image file
+        """
+        self.width = width
+        self.height = height
+        self.filepath = filepath
+        self.pixel_data: List[List[Tuple[int, int, int]]] = []
+        
+    def load_pixel_data(self, img):
+        """
+        Load pixel data from an image.
+        
+        Args:
+            img: PIL Image object
+        """
+        self.pixel_data = []
+        for y in range(self.height):
+            row = []
+            for x in range(self.width):
+                # Get pixel color (r, g, b)
+                if x < img.width and y < img.height:
+                    pixel = img.getpixel((x, y))
+                    # Handle both RGB and RGBA formats
+                    if len(pixel) == 4:  # RGBA
+                        r, g, b, a = pixel
+                        # If transparent, make it black
+                        if a == 0:
+                            r, g, b = 0, 0, 0
+                    else:  # RGB
+                        r, g, b = pixel
+                    row.append((r, g, b))
+                else:
+                    # Default to black for out-of-bounds
+                    row.append((0, 0, 0))
+            self.pixel_data.append(row)
+
+
 class GraphicInterface(ABC):
     def __init__(self, config_brightness_override: float = 1.0):
         self._brightness = 1.0
@@ -145,3 +194,98 @@ class GraphicInterface(ABC):
             A value between 0.0 and 1.0.
         """
         return self._brightness * self._config_brightness_override
+    
+    def LoadImage(self, image_name: str) -> MatrixImage:
+        """
+        Load an image from the project's images directory.
+        
+        Args:
+            image_name: Name of the image file without extension
+            
+        Returns:
+            A MatrixImage object containing the image data
+        """
+        # Get the project root directory
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        
+        # Check for png first, then bmp
+        img_path = os.path.join(project_root, "images", f"{image_name}.png")
+        if not os.path.exists(img_path):
+            img_path = os.path.join(project_root, "images", f"{image_name}.bmp")
+            if not os.path.exists(img_path):
+                raise FileNotFoundError(f"Image {image_name} not found in project images directory")
+        
+        # Load the image using PIL
+        img = Image.open(img_path)
+        
+        # Create MatrixImage
+        matrix_img = MatrixImage(img.width, img.height, img_path)
+        matrix_img.load_pixel_data(img)
+        
+        return matrix_img
+    
+    def RenderImage(self, canvas: Canvas, image: MatrixImage, x: int, y: int, 
+                   origin: Literal["center-center", "left-mid", "left-top", "left-bot", 
+                                  "right-mid", "right-top", "right-bot"] = "center-center",
+                   tint: Optional[Color] = None) -> None:
+        """
+        Render an image on the canvas.
+        
+        Args:
+            canvas: Canvas to render on
+            image: MatrixImage to render
+            x: X coordinate
+            y: Y coordinate
+            origin: Origin point of the image relative to coordinates
+            tint: Optional color to tint the image with
+        """
+        # Calculate offsets based on origin
+        offset_x, offset_y = 0, 0
+        
+        if origin == "center-center":
+            offset_x = -image.width // 2
+            offset_y = -image.height // 2
+        elif origin == "left-mid":
+            offset_x = 0
+            offset_y = -image.height // 2
+        elif origin == "left-top":
+            offset_x = 0
+            offset_y = 0
+        elif origin == "left-bot":
+            offset_x = 0
+            offset_y = -image.height
+        elif origin == "right-mid":
+            offset_x = -image.width
+            offset_y = -image.height // 2
+        elif origin == "right-top":
+            offset_x = -image.width
+            offset_y = 0
+        elif origin == "right-bot":
+            offset_x = -image.width
+            offset_y = -image.height
+        
+        # Render image pixel by pixel
+        for img_y in range(image.height):
+            for img_x in range(image.width):
+                # Calculate canvas coordinates
+                canvas_x = x + img_x + offset_x
+                canvas_y = y + img_y + offset_y
+                
+                # Check if the pixel is within canvas bounds
+                if (0 <= canvas_x < canvas.width and 
+                    0 <= canvas_y < canvas.height and 
+                    img_y < len(image.pixel_data) and 
+                    img_x < len(image.pixel_data[img_y])):
+                    
+                    # Get pixel color
+                    r, g, b = image.pixel_data[img_y][img_x]
+                    
+                    # Apply tint if provided
+                    if tint:
+                        r = (r * tint.red) // 255
+                        g = (g * tint.green) // 255
+                        b = (b * tint.blue) // 255
+                    
+                    # Set pixel on canvas
+                    if r > 0 or g > 0 or b > 0:  # Skip fully black (transparent) pixels
+                        canvas.SetPixel(canvas_x, canvas_y, Color(r, g, b))

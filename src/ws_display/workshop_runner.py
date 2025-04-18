@@ -405,45 +405,64 @@ class workshop_runner:
         
         # Only draw the chevron if this is the current workshop
         if is_current:
-            # Calculate center of chevron area
-            chevron_x = x + 2
-            chevron_y = y
-            
-            # Draw a filled triangular chevron with SetPixel
-            # Create a 7x7 triangle pointing inward (left)
-            
-            # Base height of the triangle
-            height = 7
-            
-            # Draw the filled triangle
-            for i in range(4):
-                for j in range(i+1):
-                    # Left side of triangle
+            try:
+                # Try to load the chevron image
+                chevron_img = self.graphic_interface.LoadImage("chevron")
+                
+                # Calculate center position
+                chevron_x = x + 5
+                chevron_y = y
+                
+                # Render the chevron image with tinting in the chevron color
+                self.graphic_interface.RenderImage(
+                    canvas, 
+                    chevron_img, 
+                    chevron_x, 
+                    chevron_y, 
+                    origin="left-mid", 
+                    tint=self.chevron_color
+                )
+            except FileNotFoundError:
+                # If image loading fails, fall back to pixel-based chevron
+                self.logger.warning("Chevron image not found, using pixel-based fallback")
+                
+                # Calculate center of chevron area
+                chevron_x = x + 2
+                chevron_y = y
+                
+                # Draw a filled triangular chevron with SetPixel
+                # Base height of the triangle
+                height = 7
+                
+                # Draw the filled triangle
+                for i in range(4):
+                    for j in range(i+1):
+                        # Left side of triangle
+                        canvas.SetPixel(
+                            chevron_x + i, 
+                            chevron_y - j, 
+                            self.chevron_color
+                        )
+                        # Right side of triangle (skip corner pixels for rounding)
+                        if not (i == 0 and j == 0) and not (i == 3 and j == 3):
+                            canvas.SetPixel(
+                                chevron_x + i, 
+                                chevron_y + j, 
+                                self.chevron_color
+                            )
+                
+                # Add two more pixels on the right side to complete the triangle
+                for j in range(3):
                     canvas.SetPixel(
-                        chevron_x + i, 
+                        chevron_x + 4, 
                         chevron_y - j, 
                         self.chevron_color
                     )
-                    # Right side of triangle (skip corner pixels for rounding)
-                    if not (i == 0 and j == 0) and not (i == 3 and j == 3):
-                        canvas.SetPixel(
-                            chevron_x + i, 
-                            chevron_y + j, 
-                            self.chevron_color
-                        )
-            
-            # Add two more pixels on the right side to complete the triangle
-            for j in range(3):
-                canvas.SetPixel(
-                    chevron_x + 4, 
-                    chevron_y - j, 
-                    self.chevron_color
-                )
-                canvas.SetPixel(
-                    chevron_x + 4, 
-                    chevron_y + j, 
-                    self.chevron_color
-                )
+                    canvas.SetPixel(
+                        chevron_x + 4, 
+                        chevron_y + j, 
+                        self.chevron_color
+                    )
     
     def render_workshop(self, canvas: Canvas, pixel_offset: int, workshop: Workshop, is_current: bool) -> None:
         """

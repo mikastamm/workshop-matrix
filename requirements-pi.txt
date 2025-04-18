@@ -1,5 +1,6 @@
 # Core dependencies
 PyYAML>=6.0 # For configuration loading/saving
+Pillow>=9.0 
 # Note: Pillow is NOT included here unless specifically needed on Pi for other tasks
 
 # Raspberry Pi specific dependencies
