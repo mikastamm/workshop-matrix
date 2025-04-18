@@ -550,18 +550,16 @@ class workshop_runner(program_runner):
                         self.chevron_color
                     )
     
-    def calculate_time_width(self, workshop: Workshop) -> int:
+    def calculate_time_width(self) -> int:
         """
-        Calculate the width of the time display for a workshop.
+        Calculate the fixed width of the time display area.
         
-        Args:
-            workshop: Workshop to calculate time width for
-            
         Returns:
-            Width of the time display in pixels
+            Fixed width of the time display in pixels (3 characters wide + margin)
         """
-        time_text = self.format_time_until(workshop.minutes_until_workshop)
-        return self.calculate_text_width(self.time_font, time_text)
+        # Calculate width based on 3 characters (e.g., "999")
+        three_char_width = self.calculate_text_width(self.time_font, "999")
+        return three_char_width
     
     def render_workshop(self, canvas: Canvas, pixel_offset: int, workshop: Workshop, is_current: bool, workshop_index: int) -> None:
         """
@@ -577,11 +575,11 @@ class workshop_runner(program_runner):
         name_y_position = pixel_offset + self.name_font.baseline + self.screen_margin
         time_y_position = pixel_offset + self.time_font.baseline + self.screen_margin
         
-        # Calculate time width first (needed for positioning)
-        time_width = self.calculate_time_width(workshop)
+        # Use fixed time width for positioning
+        fixed_time_width = self.calculate_time_width()
         
         # Render name first (it goes in the middle)
-        name_x = self.screen_margin + time_width + 1  # +1 for a small gap
+        name_x = self.screen_margin + fixed_time_width + self.time_block_margin
         name_max_width = self.available_name_width
         
         self.render_workshop_name(

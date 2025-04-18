@@ -97,10 +97,20 @@ class MatrixImage:
             height: Height of the image in pixels
             filepath: Path to the image file
         """
-        self.width = width
-        self.height = height
+        self._width = width
+        self._height = height
         self.filepath = filepath
         self.pixel_data: List[List[Tuple[int, int, int]]] = []
+    
+    @property
+    def width(self) -> int:
+        """Get the width of the image."""
+        return self._width
+    
+    @property
+    def height(self) -> int:
+        """Get the height of the image."""
+        return self._height
         
     def load_pixel_data(self, img):
         """
@@ -195,12 +205,14 @@ class GraphicInterface(ABC):
         """
         return self._brightness * self._config_brightness_override
     
-    def LoadImage(self, image_name: str) -> MatrixImage:
+    def LoadImage(self, image_name: str, target_width: Optional[int] = None, target_height: Optional[int] = None) -> MatrixImage:
         """
         Load an image from the project's images directory.
         
         Args:
             image_name: Name of the image file without extension
+            target_width: Optional width to scale the image to (in pixels)
+            target_height: Optional height to scale the image to (in pixels)
             
         Returns:
             A MatrixImage object containing the image data
@@ -217,6 +229,15 @@ class GraphicInterface(ABC):
         
         # Load the image using PIL
         img = Image.open(img_path)
+        
+        # Resize the image if target dimensions are specified
+        if target_width is not None or target_height is not None:
+            # Calculate new dimensions
+            new_width = target_width if target_width is not None else img.width
+            new_height = target_height if target_height is not None else img.height
+            
+            # Resize using nearest neighbor resampling
+            img = img.resize((new_width, new_height), Image.NEAREST)
         
         # Create MatrixImage
         matrix_img = MatrixImage(img.width, img.height, img_path)

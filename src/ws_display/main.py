@@ -147,7 +147,7 @@ class MatrixApp:
         # Program switching state
         current_program_index = 0
         last_program_switch_time = time.time()
-        program_switch_interval = 10.0  # Switch programs every 10 seconds
+        program_switch_interval = 20.0  # Switch programs every 10 seconds
         
         while self.running:
             # Check if we need to switch programs
