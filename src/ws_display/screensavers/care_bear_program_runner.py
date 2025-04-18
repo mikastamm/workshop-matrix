@@ -22,6 +22,10 @@ class care_bear_program_runner(program_runner):
             True if it is a screensaver, False otherwise
         """
         return True
+    
+    def get_play_duration_seconds(self) -> Optional[float]:
+        return 30.0
+
     def __init__(
         self,
         graphic_interface: GraphicInterface,

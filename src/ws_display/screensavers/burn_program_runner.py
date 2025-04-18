@@ -14,14 +14,25 @@ class burn_program_runner(program_runner):
     Every 5 seconds, for 1 second, the display is inverted with a red background,
     black text, and the image tinted red.
     """
-    def get_play_duration_seconds(self) -> float:
+    def is_screen_saver(self) -> bool:
         """
-        Get the duration in seconds that this program should play before switching to another program.
+        Burn program is not a screensaver, it should only be activated
+        at specific times by the scheduler.
         
         Returns:
-            Duration in seconds, or None if the program should run indefinitely
+            False as this is not a screensaver
         """
-        return 10.0
+        return False
+        
+    def get_play_duration_seconds(self) -> Optional[float]:
+        """
+        The burn program should run indefinitely until the scheduler decides to stop it.
+        
+        Returns:
+            None to indicate the program should run indefinitely
+        """
+        return 1.5*60*60
+        
     def __init__(
         self,
         graphic_interface: GraphicInterface,
@@ -38,13 +49,13 @@ class burn_program_runner(program_runner):
         # Image switching parameters
         self.current_image_index = 0  # 0 for burn.png, 1 for burn2.png
         self.last_image_switch_time = time.time()
-        self.image_switch_interval = 1.0  # Switch images every 1 second
+        self.image_switch_interval = 1.0  # Switch images every 
         
         # Inversion state parameters
         self.invert_active = False
         self.last_invert_start_time = time.time()
-        self.invert_start_interval = 10.0  # Start inversion every 5 seconds
-        self.invert_duration = 5.0  # Inversion lasts for 1 second
+        self.invert_start_interval = 10.0 
+        self.invert_duration = 3.0 
         
         # Colors
         self.COLOR_RED = Color(255, 0, 0)

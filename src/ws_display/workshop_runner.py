@@ -12,14 +12,24 @@ class workshop_runner(program_runner):
     """
     Class responsible for rendering workshops on the display.
     """
-    def get_play_duration_seconds(self) -> float:
+    def is_screen_saver(self) -> bool:
+        """
+        Workshop runner is not a screensaver, it's the main display.
+        
+        Returns:
+            False as this is not a screensaver
+        """
+        return False
+        
+    def get_play_duration_seconds(self) -> Optional[float]:
         """
         Get the duration in seconds that this program should play before switching to another program.
         
         Returns:
-            Duration in seconds, or None if the program should run indefinitely
+            None as the workshop runner should run indefinitely until interrupted
         """
         return None
+        
     def __init__(
         self,
         graphic_interface: GraphicInterface,
