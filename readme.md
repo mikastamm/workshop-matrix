@@ -1,6 +1,6 @@
 ## **Outdoor LED Display for Workshop Schedule**
 
-> Dream Applicaiton for Kiezburn 2025
+> Dream Application for Kiezburn 2025
 
 ### Images & Sketches
 
