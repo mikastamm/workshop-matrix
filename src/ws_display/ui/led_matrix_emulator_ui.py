@@ -1,3 +1,4 @@
+import asyncio
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional, Dict, Any
@@ -19,23 +20,24 @@ class LedMatrixEmulatorUI(LedMatrixUI):
         self.root = None
         self.control_panels: Dict[tk.Widget, Any] = {}
         self.widgets: Dict[str, Any] = {}
+        self.update_task = None
     
-    def initialize(self, root: Optional[tk.Tk] = None) -> None:
+    def initialize(self, root_window: Optional[Any] = None) -> None:
         """
         Initialize the UI.
         
         Args:
-            root: Optional Tkinter root window
+            root_window: Optional Tkinter root window
         """
-        if root is None:
+        if root_window is None:
             self.root = tk.Tk()
             self.root.title("Matrix Control Panel")
         else:
-            self.root = root
+            self.root = root_window
         
         self.logger.info("Initialized LED Matrix Emulator UI")
     
-    def create_control_panel(self, parent: tk.Widget) -> tk.Widget:
+    def create_control_panel(self, parent: Any) -> Any:
         """
         Create a control panel with UI elements.
         
@@ -51,7 +53,7 @@ class LedMatrixEmulatorUI(LedMatrixUI):
         self.control_panels[parent] = control_frame
         return control_frame
     
-    def add_button(self, parent: tk.Widget, text: str, command: Callable) -> None:
+    def add_button(self, parent: Any, text: str, command: Callable) -> None:
         """
         Add a button to the UI.
         
@@ -66,7 +68,7 @@ class LedMatrixEmulatorUI(LedMatrixUI):
         # Store the button for later reference
         self.widgets[f"button_{text}"] = button
     
-    def add_timescale_slider(self, parent: tk.Widget, 
+    def add_timescale_slider(self, parent: Any, 
                             on_change: Callable[[float], None], 
                             initial_value: float = 1.0) -> None:
         """
@@ -108,6 +110,46 @@ class LedMatrixEmulatorUI(LedMatrixUI):
         """
         Clean up resources used by the UI.
         """
+        if self.update_task:
+            self.update_task.cancel()
+            self.update_task = None
+            
         if self.root:
             self.root.destroy()
             self.root = None
+    
+    def run_ui(self, app: Any) -> None:
+        """
+        Run the UI with the given application.
+        This method handles Tkinter-specific UI initialization and setup.
+        
+        Args:
+            app: The application instance to run with the UI
+        """
+        # Initialize UI
+        self.initialize()
+        
+        # Create control panel
+        control_panel = self.create_control_panel(self.root)
+        
+        # Add test button
+        def button_click():
+            print("Button pressed!")
+        
+        self.add_button(control_panel, "Test Button", button_click)
+        
+        # Add timescale slider
+        def timescale_change(value):
+            app.time_keeper.set_timescale(value)
+            print(f"Time scale changed to: {value}")
+        
+        self.add_timescale_slider(control_panel, timescale_change, 1.0)
+        
+        # Set up a periodic task to update the UI
+        async def update_ui():
+            while True:
+                self.update()
+                await asyncio.sleep(0.01)
+        
+        # Start the update task
+        self.update_task = asyncio.create_task(update_ui())

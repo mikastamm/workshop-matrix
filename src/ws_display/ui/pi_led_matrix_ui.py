@@ -1,3 +1,4 @@
+import asyncio
 from typing import Callable, Optional, Any
 
 from src.logging import Logger
@@ -17,16 +18,16 @@ class PiLedMatrixUI(LedMatrixUI):
         self.logger = Logger.get_logger()
         self.logger.info("Initialized Pi LED Matrix UI (no-op implementation)")
     
-    def initialize(self, root) -> None:
+    def initialize(self, root_window: Optional[Any] = None) -> None:
         """
         Initialize the UI (no-op implementation).
         
         Args:
-            root: Optional Tkinter root window (ignored)
+            root_window: Optional root window (ignored)
         """
         pass
     
-    def create_control_panel(self, parent) :
+    def create_control_panel(self, parent: Any) -> Any:
         """
         Create a control panel with UI elements (no-op implementation).
         
@@ -38,7 +39,7 @@ class PiLedMatrixUI(LedMatrixUI):
         """
         return parent
     
-    def add_button(self, parent, text: str, command: Callable) -> None:
+    def add_button(self, parent: Any, text: str, command: Callable) -> None:
         """
         Add a button to the UI (no-op implementation).
         
@@ -49,7 +50,7 @@ class PiLedMatrixUI(LedMatrixUI):
         """
         pass
     
-    def add_timescale_slider(self, parent,
+    def add_timescale_slider(self, parent: Any,
                             on_change: Callable[[float], None], 
                             initial_value: float = 1.0) -> None:
         """
@@ -73,3 +74,13 @@ class PiLedMatrixUI(LedMatrixUI):
         Clean up resources used by the UI (no-op implementation).
         """
         pass
+    
+    def run_ui(self, app: Any) -> None:
+        """
+        Run the UI with the given application (no-op implementation).
+        Since there's no UI on the Raspberry Pi, this method does nothing.
+        
+        Args:
+            app: The application instance (ignored)
+        """
+        self.logger.info("No UI to run on Raspberry Pi")

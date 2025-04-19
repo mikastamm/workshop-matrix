@@ -1,7 +1,6 @@
 import asyncio
 import os
 import sys
-import tkinter as tk
 from typing import Optional
 
 from src.logging import Logger
@@ -104,40 +103,11 @@ class MatrixApp:
             await asyncio.sleep(1)
 
 async def main():
-    # Initialize Tkinter root window
-    root = tk.Tk()
-    root.title("Matrix Control Panel")
-    
     app = MatrixApp()
     
-    # Initialize UI
-    app.ui.initialize(root)
-    
-    # Create control panel
-    control_panel = app.ui.create_control_panel(root)
-    
-    # Add test button
-    def button_click():
-        print("Button pressed!")
-    
-    app.ui.add_button(control_panel, "Test Button", button_click)
-    
-    # Add timescale slider
-    def timescale_change(value):
-        app.time_keeper.set_timescale(value)
-        print(f"Time scale changed to: {value}")
-    
-    app.ui.add_timescale_slider(control_panel, timescale_change, 1.0)
-    
     try:
-        # Set up a periodic task to update the UI
-        async def update_ui():
-            while True:
-                app.ui.update()
-                await asyncio.sleep(0.01)
-        
-        # Start the update task
-        update_task = asyncio.create_task(update_ui())
+        # Run the UI
+        app.ui.run_ui(app)
         
         # Run the main application
         await app.run()
