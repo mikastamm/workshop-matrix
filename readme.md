@@ -7,6 +7,10 @@
  ![AI concept image of the LED Display and molded frame](attachments/7d8bd42e-93ce-4373-88ad-140b95bfe400.png)
 
 
+https://github.com/user-attachments/assets/5f57fcee-c8fb-4554-98bb-41f7fa46c22e
+
+
+
 [A little demo of the software ( WIP ) 2542x1258](attachments/88101f34-d130-4cfa-a113-43e1a9f4ed12.mp4)
 
 
