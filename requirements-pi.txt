@@ -13,5 +13,4 @@ Pillow>=9.0
 # Rotary encoder support
 pigpio>=1.78 # Required for pigpio_encoder
 pigpio_encoder>=0.2.2 # For rotary encoder input
-
 # Add other Pi-specific dependencies here if needed
