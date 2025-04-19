@@ -81,12 +81,10 @@ class MatrixApp:
         def on_down():
             self.brightness = max(0.1, self.brightness - 0.05)
             self.graphic_interface.set_brightness(self.brightness)
-            self.logger.info(f"Brightness decreased to {self.brightness:.1f}")
             return True  # Allow other listeners to be called
         
         # Register click listener (placeholder for now)
         def on_click():
-            self.logger.info("Click detected")
             return True  # Allow other listeners to be called
         
         # Register the listeners
