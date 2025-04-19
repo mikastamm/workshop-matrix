@@ -34,7 +34,7 @@ class program_scheduler:
 
         # Set up burn program timing
         self.burn_start_time = self.time_keeper.now() + timedelta(minutes=3)
-        self.burn_duration = timedelta(hours=2)
+        self.burn_duration = timedelta(seconds=program_mgr.get_program_by_type(burn_program_runner).get_play_duration_seconds())
         self.burn_end_time = self.burn_start_time + self.burn_duration
         
         # Set initial program
@@ -89,6 +89,10 @@ class program_scheduler:
             self._set_initial_program()
             return
         
+     # Check if a program has finished
+        if result.finished_program_type:
+            self._set_initial_program()
+            return
         # Check if we should run the burn program
         if self._should_run_burn_program():
             # Check if we're already running the burn program
@@ -109,22 +113,7 @@ class program_scheduler:
                     self.last_program_switch_time = current_time
                     return
         
-        # Check if a program has finished
-        if result.finished_program_type:
-            active_program_type = type(active_program)
-            
-            # If a screensaver finished, switch back to workshop
-            if result.finished_program_type != active_program_type:
-                # A different program finished (probably previous program)
-                return
-            
-            if active_program.is_screen_saver():
-                # Screensaver finished, switch back to workshop
-                for program_type in self.program_manager.program_types.keys():
-                    if issubclass(program_type, workshop_runner):
-                        self.program_manager.set_active_program(program_type)
-                        self.last_program_switch_time = current_time
-                        return
+   
             
         # Check if we should switch to a screensaver
         if not active_program.is_screen_saver():
