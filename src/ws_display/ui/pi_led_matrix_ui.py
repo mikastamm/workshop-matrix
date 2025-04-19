@@ -1,4 +1,3 @@
-import tkinter as tk
 from typing import Callable, Optional, Any
 
 from src.logging import Logger
@@ -18,7 +17,7 @@ class PiLedMatrixUI(LedMatrixUI):
         self.logger = Logger.get_logger()
         self.logger.info("Initialized Pi LED Matrix UI (no-op implementation)")
     
-    def initialize(self, root: Optional[tk.Tk] = None) -> None:
+    def initialize(self, root) -> None:
         """
         Initialize the UI (no-op implementation).
         
@@ -27,7 +26,7 @@ class PiLedMatrixUI(LedMatrixUI):
         """
         pass
     
-    def create_control_panel(self, parent: tk.Widget) -> tk.Widget:
+    def create_control_panel(self, parent) :
         """
         Create a control panel with UI elements (no-op implementation).
         
@@ -39,7 +38,7 @@ class PiLedMatrixUI(LedMatrixUI):
         """
         return parent
     
-    def add_button(self, parent: tk.Widget, text: str, command: Callable) -> None:
+    def add_button(self, parent, text: str, command: Callable) -> None:
         """
         Add a button to the UI (no-op implementation).
         
@@ -50,7 +49,7 @@ class PiLedMatrixUI(LedMatrixUI):
         """
         pass
     
-    def add_timescale_slider(self, parent: tk.Widget, 
+    def add_timescale_slider(self, parent,
                             on_change: Callable[[float], None], 
                             initial_value: float = 1.0) -> None:
         """
