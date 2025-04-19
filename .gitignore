@@ -19,4 +19,3 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-runtime_artifacts/
