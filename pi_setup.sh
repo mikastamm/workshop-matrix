@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # setup_matrix.sh
 #
-# 1. (once)  Ensure git, python3‑dev, python3‑pillow are installed
+# 1. (once)  Ensure git, python3-dev, python3-pillow are installed
 #             and build+install hzeller/rpi‑rgb‑led‑matrix
 # 2.         Create/upgrade venv + requirements‑pi.txt
 # 3.         Create/enable/start systemd unit "matrix"
@@ -24,7 +24,6 @@ echo
 ###############################################################################
 # Step 0 – one‑time APT install + rpi‑rgb‑led‑matrix library
 ###############################################################################
-# Check if system packages are present
 declare -a DEPS=(git python3-dev python3-pillow)
 MISSING=()
 for pkg in "${DEPS[@]}"; do
@@ -40,11 +39,8 @@ else
 fi
 
 # Check if the rgbmatrix Python module is already importable
-if python3 - <<'PY' &>/dev/null; then
-import importlib.util, sys
-sys.exit(0 if importlib.util.find_spec('rgbmatrix') else 1)
-PY
-then
+if python3 -c "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('rgbmatrix') else 1)" \
+     &>/dev/null; then
   echo "rgbmatrix Python module detected – skipping library build."
 else
   echo "Building & installing hzeller/rpi-rgb-led-matrix (this can take a while)…"
@@ -62,7 +58,7 @@ fi
 # Step 1 – project update & virtual environment
 ###############################################################################
 echo
-git -C "${PROJECT_DIR}" pull || true   # ignore if not a git repo
+git -C "${PROJECT_DIR}" pull || true
 
 if [[ -d "${VENV_DIR}" ]]; then
   echo "Virtual‑environment already exists – skipping creation."
