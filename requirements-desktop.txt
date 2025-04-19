@@ -1,5 +1,6 @@
 # Core dependencies
 PyYAML>=6.0 # For configuration loading/saving
 Pillow>=9.0 # For emulated graphics rendering
+keyboard>=0.13.5 # For desktop user input
 
 # Add other desktop-specific dependencies here if needed

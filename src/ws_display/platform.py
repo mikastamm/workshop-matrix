@@ -6,6 +6,7 @@ from src.logging import Logger
 from src.ws_display.Config import Config
 from src.ws_display.config_loader import get_config
 from src.ws_display.renderer.graphic_interface import GraphicInterface
+from src.ws_display.input.user_input import UserInput
 
 class Platform:
     """
@@ -109,3 +110,19 @@ class Platform:
         else:
             from src.ws_display.ui.led_matrix_emulator_ui import LedMatrixEmulatorUI
             return LedMatrixEmulatorUI()
+    
+    def get_user_input(self) -> UserInput:
+        """
+        Get the appropriate UserInput implementation based on the platform.
+        
+        Returns:
+            UserInput implementation for the current platform
+        """
+        if self.is_raspberry_pi:
+            self.logger.info("Using Pi user input")
+            from src.ws_display.input.pi_user_input import PiUserInput
+            return PiUserInput()
+        else:
+            self.logger.info("Using desktop user input")
+            from src.ws_display.input.desktop_user_input import DesktopUserInput
+            return DesktopUserInput()

@@ -10,4 +10,8 @@ Pillow>=9.0
 # Add a comment indicating how to install it.
 # rgbmatrix # Install via 'sudo make install-python' in rpi-rgb-led-matrix repo
 
+# Rotary encoder support
+pigpio>=1.78 # Required for pigpio_encoder
+pigpio_encoder>=0.2.2 # For rotary encoder input
+
 # Add other Pi-specific dependencies here if needed
