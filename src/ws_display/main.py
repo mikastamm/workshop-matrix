@@ -12,14 +12,16 @@ from src.ws_display.config_loader import get_config
 from src.ws_display.program_manager import program_manager
 from src.ws_display.program_scheduler import program_scheduler
 from src.ws_display.renderer.graphic_interface import GraphicInterface
+from src.ws_display.time_keeper import time_keeper
 
 class MatrixApp:
     def __init__(self):
         self.logger = Logger.get_logger()
         self.config = get_config()
         self.graphic_interface = self._create_graphic_interface()
-        self.program_mgr = program_manager(self.graphic_interface)
-        self.program_scheduler = program_scheduler(self.program_mgr)
+        self.time_keeper = time_keeper()
+        self.program_mgr = program_manager(self.graphic_interface, self.time_keeper)
+        self.program_scheduler = program_scheduler(self.program_mgr, self.time_keeper)
         self.running = False
         self.renderer_task = None
     
@@ -117,6 +119,8 @@ async def main():
     control_frame = ttk.Frame(root, padding="10")
     control_frame.pack(fill=tk.X, expand=False, pady=10)
     
+    app = MatrixApp()
+    
     # Add a button
     def button_click():
         print("Button pressed!")
@@ -124,16 +128,23 @@ async def main():
     test_button = ttk.Button(control_frame, text="Test Button", command=button_click)
     test_button.pack(side=tk.LEFT, padx=5)
     
-    # Add a slider
-    def slider_change(value):
-        print(f"Slider value changed to: {value}")
+    # Add a timescale slider
+    timescale_frame = ttk.Frame(control_frame)
+    timescale_frame.pack(side=tk.LEFT, padx=5)
     
-    test_slider = ttk.Scale(control_frame, from_=0, to=100, orient=tk.HORIZONTAL, 
-                           length=200, command=slider_change)
-    test_slider.pack(side=tk.LEFT, padx=5)
-    test_slider.set(50)  # Set initial value
+    timescale_label = ttk.Label(timescale_frame, text="Time Scale: 1.0x")
+    timescale_label.pack(side=tk.TOP)
     
-    app = MatrixApp()
+    def timescale_change(value):
+        timescale = float(value)
+        app.time_keeper.set_timescale(timescale)
+        timescale_label.config(text=f"Time Scale: {timescale:.1f}x")
+        print(f"Time scale changed to: {timescale}")
+    
+    timescale_slider = ttk.Scale(timescale_frame, from_=1, to=100, orient=tk.HORIZONTAL, 
+                           length=200, command=timescale_change)
+    timescale_slider.pack(side=tk.BOTTOM)
+    timescale_slider.set(1)  # Set initial value to 1
     try:
         # Set up a periodic task to update the Tkinter event loop
         async def update_tk():

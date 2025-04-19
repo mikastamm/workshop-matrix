@@ -5,6 +5,7 @@ from typing import List, Callable, Optional
 from dataclasses import dataclass
 
 from src.logging import Logger
+from src.ws_display.time_keeper import time_keeper
 
 @dataclass
 class Workshop:
@@ -117,14 +118,15 @@ class workshop_loader:
     """
     Class for loading workshops from a YAML file.
     """
-    def __init__(self, get_current_datetime: Callable[[], datetime]):
+    def __init__(self, time_keeper_instance: time_keeper):
         """
-        Initialize the workshop_loader with a function to get the current datetime.
+        Initialize the workshop_loader with a time_keeper instance.
         
         Args:
-            get_current_datetime: Function that returns the current datetime
+            time_keeper_instance: The time keeper instance to use for time-related operations
         """
-        self._get_current_datetime = get_current_datetime
+        self.time_keeper = time_keeper_instance
+        self._get_current_datetime = self.time_keeper.now
         self.logger = Logger.get_logger()
         self.logger.info("Initialized workshop_loader")
     

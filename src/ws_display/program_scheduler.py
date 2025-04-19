@@ -1,11 +1,11 @@
-import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional, Type
 
 from src.logging import Logger
 from src.ws_display.program_manager import program_manager
 from src.ws_display.program_runner import program_runner
 from src.ws_display.program_runner_result import program_runner_result, ProgramFinishReason
+from src.ws_display.time_keeper import time_keeper
 from src.ws_display.workshop_runner import workshop_runner
 from src.ws_display.screensavers.burn_program_runner import burn_program_runner
 
@@ -18,20 +18,22 @@ class program_scheduler:
     # Constants
     DISPLAY_SCREENSAVER_AFTER_SECONDS = 30.0  # Switch to screensaver after this many seconds
     
-    def __init__(self, program_mgr: program_manager):
+    def __init__(self, program_mgr: program_manager, time_keeper_instance: time_keeper):
         """
         Initialize the program scheduler.
         
         Args:
             program_mgr: The program manager to use for program switching
+            time_keeper_instance: The time keeper instance to use for time-related operations
         """
         self.logger = Logger.get_logger()
         self.program_manager = program_mgr
-        self.last_program_switch_time = time.time()
+        self.time_keeper = time_keeper_instance
+        self.last_program_switch_time = self.time_keeper.time()
         self.last_screen_saver_index = 0
 
         # Set up burn program timing
-        self.burn_start_time = datetime.now() + timedelta(minutes=3)
+        self.burn_start_time = self.time_keeper.now() + timedelta(minutes=3)
         self.burn_duration = timedelta(hours=2)
         self.burn_end_time = self.burn_start_time + self.burn_duration
         
@@ -52,7 +54,7 @@ class program_scheduler:
         """
         When the burn starts, we run the burn program.
         """
-        current_time = datetime.now()
+        current_time = self.time_keeper.now()
         return current_time >= self.burn_start_time and current_time < self.burn_end_time
     
     def _get_next_screensaver(self, current_program_type: Type[program_runner]) -> Optional[Type[program_runner]]:
@@ -79,7 +81,7 @@ class program_scheduler:
         Args:
             result: The result of running the active program
         """
-        current_time = time.time()
+        current_time = self.time_keeper.time()
         active_program = self.program_manager.get_active_program()
 
         if not active_program:
@@ -87,7 +89,6 @@ class program_scheduler:
             self._set_initial_program()
             return
         
-
         # Check if we should run the burn program
         if self._should_run_burn_program():
             # Check if we're already running the burn program
@@ -100,14 +101,30 @@ class program_scheduler:
                         return
             # Already running burn program, continue
             return
+        elif isinstance(active_program, burn_program_runner):
+            # Burn program is running but conditions no longer met, switch back to workshop
+            for program_type in self.program_manager.program_types.keys():
+                if issubclass(program_type, workshop_runner):
+                    self.program_manager.set_active_program(program_type)
+                    self.last_program_switch_time = current_time
+                    return
         
         # Check if a program has finished
         if result.finished_program_type:
             active_program_type = type(active_program)
             
-            self.program_manager.set_active_program(workshop_runner)
-            self.last_program_switch_time = current_time
-            return
+            # If a screensaver finished, switch back to workshop
+            if result.finished_program_type != active_program_type:
+                # A different program finished (probably previous program)
+                return
+            
+            if active_program.is_screen_saver():
+                # Screensaver finished, switch back to workshop
+                for program_type in self.program_manager.program_types.keys():
+                    if issubclass(program_type, workshop_runner):
+                        self.program_manager.set_active_program(program_type)
+                        self.last_program_switch_time = current_time
+                        return
             
         # Check if we should switch to a screensaver
         if not active_program.is_screen_saver():

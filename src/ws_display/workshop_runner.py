@@ -1,8 +1,8 @@
-import time
 from datetime import datetime, timedelta
 from typing import List, Callable, Optional, Tuple, Dict
 
 from src.logging import Logger
+from src.ws_display.time_keeper import time_keeper
 from src.ws_display.workshop_loader import workshop_loader, Workshop, Workshops
 from src.ws_display.renderer.graphic_interface import GraphicInterface, Canvas, Font, Color
 from src.ws_display.program_runner import program_runner
@@ -36,7 +36,7 @@ class workshop_runner(program_runner):
         time_font: Font,
         name_font: Font,  # Separate font for workshop names
         location_font: Font,
-        get_current_datetime: Callable[[], datetime],
+        time_keeper_instance: time_keeper,
         line_height: int,
         location_line_height: int,
         time_width: int = 40,
@@ -72,7 +72,8 @@ class workshop_runner(program_runner):
         self.time_font = time_font
         self.name_font = name_font
         self.location_font = location_font
-        self.get_current_datetime = get_current_datetime
+        self.time_keeper = time_keeper_instance
+        self.get_current_datetime = self.time_keeper.now
         
         # Pixel dimensions
         self.line_height = line_height
@@ -104,7 +105,7 @@ class workshop_runner(program_runner):
         # State variables
         self.displayed_workshops: List[Workshop] = []
         self.current_location_index = 0
-        self.last_location_change_time = time.time()
+        self.last_location_change_time = self.time_keeper.time()
         self.last_workshop_update_time = 0
         
         # Scrolling state variables
@@ -123,7 +124,7 @@ class workshop_runner(program_runner):
         self.scroll_speed = scroll_speed  # pixels per second
         
         # Initialize workshop loader
-        self.workshop_loader = workshop_loader(get_current_datetime)
+        self.workshop_loader = workshop_loader(time_keeper_instance)
         
         # Screen saver function (placeholder)
         self.screen_saver_fn = None
@@ -176,7 +177,7 @@ class workshop_runner(program_runner):
         Returns:
             True if workshops were updated, False otherwise
         """
-        current_time = time.time()
+        current_time = self.time_keeper.time()
         
         # Check if enough time has passed since the last update
         if current_time - self.last_workshop_update_time < self.workshop_update_interval:
@@ -231,7 +232,7 @@ class workshop_runner(program_runner):
         if not self.displayed_workshops:
             return False
         
-        current_time = time.time()
+        current_time = self.time_keeper.time()
         current_index = self.current_location_index
         current_workshop = self.displayed_workshops[current_index]
         
@@ -371,7 +372,7 @@ class workshop_runner(program_runner):
         # Only scroll if this is the current workshop and it needs scrolling
         if is_current and needs_scrolling:
             # Get current time
-            current_time = time.time()
+            current_time = self.time_keeper.time()
             
             # Get or initialize the scroll start time
             if workshop_index not in self.scroll_start_times:
