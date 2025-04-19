@@ -17,6 +17,8 @@ echo "Venv dir    : ${VENV_DIR}"
 echo "Service file: ${SERVICE_FILE}"
 echo
 
+git pull
+
 #
 # 1) Create / update virtual environment
 #

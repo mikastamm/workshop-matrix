@@ -32,7 +32,7 @@ class Platform:
         Returns:
             True if running on a Raspberry Pi, False otherwise
         """
-        return platform.machine().startswith('arm') and os.path.exists('/sys/firmware/devicetree/base/model')
+        return platform.machine().startswith('arm') or platform.machine().startswith('aarch64')
     
     @property
     def is_raspberry_pi(self) -> bool:
