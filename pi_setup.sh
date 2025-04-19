@@ -24,7 +24,7 @@ echo
 ###############################################################################
 # Step 0 – one‑time APT install + rpi‑rgb‑led‑matrix library
 ###############################################################################
-declare -a DEPS=(git python3-dev python3-pillow)
+declare -a DEPS=(git python3-dev python3-pillow cython3 python3-wheel python3-setuptools)
 MISSING=()
 for pkg in "${DEPS[@]}"; do
   dpkg -s "${pkg}" &>/dev/null || MISSING+=("${pkg}")
