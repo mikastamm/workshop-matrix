@@ -3,6 +3,7 @@ import os
 import platform
 import sys
 import tkinter as tk
+from tkinter import ttk
 from typing import Optional
 
 from src.logging import Logger
@@ -110,7 +111,27 @@ class MatrixApp:
 async def main():
     # Initialize Tkinter root window
     root = tk.Tk()
-    root.withdraw()  # Hide the root window
+    root.title("Matrix Control Panel")
+    
+    # Create a frame for controls
+    control_frame = ttk.Frame(root, padding="10")
+    control_frame.pack(fill=tk.X, expand=False, pady=10)
+    
+    # Add a button
+    def button_click():
+        print("Button pressed!")
+    
+    test_button = ttk.Button(control_frame, text="Test Button", command=button_click)
+    test_button.pack(side=tk.LEFT, padx=5)
+    
+    # Add a slider
+    def slider_change(value):
+        print(f"Slider value changed to: {value}")
+    
+    test_slider = ttk.Scale(control_frame, from_=0, to=100, orient=tk.HORIZONTAL, 
+                           length=200, command=slider_change)
+    test_slider.pack(side=tk.LEFT, padx=5)
+    test_slider.set(50)  # Set initial value
     
     app = MatrixApp()
     try:
