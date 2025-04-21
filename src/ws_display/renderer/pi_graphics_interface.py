@@ -51,9 +51,7 @@ class PiFont(Font):
         # Check if the file ends with .ttf and replace with .bdf for Pi compatibility
         if file.endswith('.ttf'):
             file = file[:-4] + '.bdf'
-            
-        if not self._font.LoadFont(file):
-            raise Exception(f"Couldn't load font {file}")
+        self._font.LoadFont(file)
         self._loaded = True
     
     def CharacterWidth(self, char: int) -> int:
@@ -181,12 +179,14 @@ class PiGraphicInterface(GraphicInterface):
         brightness_percent = int(self.effective_brightness * 100)
         self._matrix.brightness = brightness_percent
     
-    def LoadImage(self, image_name: str) -> MatrixImage:
+    def LoadImage(self, image_name: str, target_width: Optional[int] = None, target_height: Optional[int] = None) -> MatrixImage:
         """
         Load an image from the project's images directory.
         
         Args:
             image_name: Name of the image file without extension
+            target_width: Optional width to scale the image to (in pixels)
+            target_height: Optional height to scale the image to (in pixels)
             
         Returns:
             A MatrixImage object containing the image data
@@ -203,6 +203,28 @@ class PiGraphicInterface(GraphicInterface):
         
         # Load the image using PIL
         img = Image.open(img_path)
+        
+        # Resize the image if target dimensions are specified
+        if target_width is not None or target_height is not None:
+            # Get original aspect ratio
+            aspect_ratio = img.width / img.height
+            
+            # Calculate new dimensions respecting aspect ratio
+            if target_width is not None and target_height is not None:
+                # Both dimensions provided, use as is
+                new_width = target_width
+                new_height = target_height
+            elif target_width is not None:
+                # Only width provided, calculate height based on aspect ratio
+                new_width = target_width
+                new_height = int(target_width / aspect_ratio)
+            else:  # target_height is not None
+                # Only height provided, calculate width based on aspect ratio
+                new_height = target_height
+                new_width = int(target_height * aspect_ratio)
+            
+            # Resize using nearest neighbor resampling
+            img = img.resize((new_width, new_height), Image.NEAREST)
         
         # Create MatrixImage
         matrix_img = MatrixImage(img.width, img.height, img_path)
