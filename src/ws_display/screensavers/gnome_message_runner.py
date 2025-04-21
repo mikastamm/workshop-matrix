@@ -24,18 +24,18 @@ class gnome_message_runner(program_runner):
     def __init__(
         self,
         graphic_interface: GraphicInterface,
-        message_font: Font,
     ):
         """
         Initialize the gnome message runner.
         
         Args:
             graphic_interface: The graphic interface to render on
-            message_font: Font to use for the message display
         """
         super().__init__(graphic_interface)
         self.logger = Logger.get_logger()
-        self.message_font = message_font
+        
+        # Load font
+        self.message_font = self._load_font(graphic_interface, "emil")
         
         # Set the message on two lines
         self.message_line1 = "Please stop"
@@ -142,3 +142,32 @@ class gnome_message_runner(program_runner):
         for char in text:
             width += font.CharacterWidth(ord(char))
         return width
+    
+    def _load_font(self, graphic_interface: GraphicInterface, font_name: str, font_size: int = 16) -> Font:
+        """
+        Load a font from the fonts directory.
+        
+        Args:
+            graphic_interface: The graphic interface to use for font creation
+            font_name: Name of the font file without extension
+            font_size: Font size (only used for emulated graphics interface)
+            
+        Returns:
+            Loaded font or None if loading failed
+        """
+        import os
+        
+        font = graphic_interface.CreateFont()
+        try:
+            # Get the project root directory
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            
+            # Create the font path with .ttf extension (will be converted to .bdf if needed by PiFont)
+            font_path = os.path.join(project_root, "fonts", font_name + ".ttf")
+            
+            font.LoadFont(font_path)
+            self.logger.info(f"Loaded font: {font_path}")
+            return font
+        except Exception as e:
+            self.logger.error(f"Failed to load font: {e}")
+            return None

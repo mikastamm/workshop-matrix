@@ -31,50 +31,36 @@ class workshop_runner(program_runner):
         """
         return None
         
-    def __init__(
-        self,
-        graphic_interface: GraphicInterface,
-        time_font: Font,
-        name_font: Font,  # Separate font for workshop names
-        location_font: Font,
-        time_keeper_instance: time_keeper,
-        line_height: int,
-        location_line_height: int,
-        time_width: int = 40,
-        chevron_width: int = 10,
-        screen_margin: int = 3,
-        time_block_margin: int = 2,  # margin between time block and name area
-        location_display_time: int = 5,  # seconds to display each location
-        workshop_update_interval: int = 30,  # seconds between workshop list updates
-        future_time_limit: int = 24 * 60,  # minutes (24 hours)
-        scroll_speed: float = 10.0,  # pixels per second for scrolling text
-        min_current_time: float = 6.0,  # minimum time to display workshop as current (seconds)
-        max_current_time: float = 12.0  # maximum time to display workshop as current (seconds)
-    ):
+    def __init__(self, graphic_interface: GraphicInterface, time_keeper_instance: time_keeper):
         """
         Initialize the workshop_runner.
         
         Args:
             graphic_interface: The graphic interface to render on
-            time_font: Font to use for time display
-            name_font: Font to use for workshop names
-            location_font: Font to use for location display
-            get_current_datetime: Function that returns the current datetime
-            line_height: Height of each workshop line
-            location_line_height: Height of the location line
-            time_width: Width in pixels for the time display
-            chevron_width: Width in pixels for the chevron indicator
-            location_display_time: Seconds to display each location before cycling
-            workshop_update_interval: Seconds between workshop list updates
-            future_time_limit: Maximum minutes in the future to display workshops
+            time_keeper_instance: Time keeper instance for time-related operations
         """
         super().__init__(graphic_interface)
         self.logger = Logger.get_logger()
-        self.time_font = time_font
-        self.name_font = name_font
-        self.location_font = location_font
+        
+        # Store time keeper instance
         self.time_keeper = time_keeper_instance
         self.get_current_datetime = self.time_keeper.now
+        
+        # Load fonts
+        self.time_font = self._load_font(graphic_interface, "emil")
+        self.name_font = self._load_font(graphic_interface, "emil")
+        self.location_font = self._load_font(graphic_interface, "emil")
+        
+        # Set constant values
+        line_height = 15
+        location_line_height = 15
+        time_width = 40
+        chevron_width = 10
+        screen_margin = 3
+        time_block_margin = 2  # margin between time block and name area
+        scroll_speed = 5.0  # pixels per second for scrolling text
+        min_current_time = 6.0  # minimum time to display workshop as current (seconds)
+        max_current_time = 12.0  # maximum time to display workshop as current (seconds)
         
         # Create menu renderer configuration
         self.menu_renderer_config = MenuRendererConfig(
@@ -92,9 +78,9 @@ class workshop_runner(program_runner):
         # Create menu renderer
         self.menu_renderer = MenuRenderer(
             graphic_interface=graphic_interface,
-            value_font=time_font,
-            name_font=name_font,
-            description_font=location_font,
+            value_font=self.time_font,
+            name_font=self.name_font,
+            description_font=self.location_font,
             config=self.menu_renderer_config,
             get_current_time=self.time_keeper.time
         )
@@ -107,9 +93,9 @@ class workshop_runner(program_runner):
         self.max_workshops = self.menu_renderer.max_items
         
         # Timing parameters
-        self.location_display_time = location_display_time
-        self.workshop_update_interval = workshop_update_interval
-        self.future_time_limit = future_time_limit
+        self.location_display_time = 5  # seconds to display each location
+        self.workshop_update_interval = 30  # seconds between workshop list updates
+        self.future_time_limit = 24 * 60  # minutes (24 hours)
         
         # State variables
         self.displayed_workshops: List[Workshop] = []
@@ -118,12 +104,41 @@ class workshop_runner(program_runner):
         self.last_workshop_update_time = 0
         
         # Initialize workshop loader
-        self.workshop_loader = workshop_loader(time_keeper_instance)
+        self.workshop_loader = workshop_loader(self.time_keeper)
         
         # Screen saver function (placeholder)
         self.screen_saver_fn = None
         
         self.logger.info("Initialized workshop_runner")
+    
+    def _load_font(self, graphic_interface: GraphicInterface, font_name: str, font_size: int = 16) -> Font:
+        """
+        Load a font from the fonts directory.
+        
+        Args:
+            graphic_interface: The graphic interface to use for font creation
+            font_name: Name of the font file without extension
+            font_size: Font size (only used for emulated graphics interface)
+            
+        Returns:
+            Loaded font or None if loading failed
+        """
+        import os
+        
+        font = graphic_interface.CreateFont()
+        try:
+            # Get the project root directory
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            
+            # Create the font path with .ttf extension (will be converted to .bdf if needed by PiFont)
+            font_path = os.path.join(project_root, "fonts", font_name + ".ttf")
+            
+            font.LoadFont(font_path)
+            self.logger.info(f"Loaded font: {font_path}")
+            return font
+        except Exception as e:
+            self.logger.error(f"Failed to load font: {e}")
+            return None
     
     def get_current_screen_saver(self) -> Callable[[Canvas], Canvas]:
         """

@@ -49,11 +49,6 @@ class program_manager:
         from src.ws_display.screensavers.care_bear_program_runner import care_bear_program_runner
         from src.ws_display.screensavers.burn_program_runner import burn_program_runner
         
-        # Create fonts for workshop runner
-        time_font = self._load_font("emil")
-        name_font = self._load_font("emil")
-        location_font = self._load_font("emil")
-        
         # Add program runners
         programs_to_add = [
             eye_program_runner(
@@ -63,21 +58,10 @@ class program_manager:
             ),
             workshop_runner(
                 graphic_interface=self.graphic_interface,
-                time_font=time_font,
-                name_font=name_font,
-                location_font=location_font,
-                time_keeper_instance=self.time_keeper,
-                line_height=15,
-                location_line_height=15,
-                screen_margin=3,
-                time_block_margin=2,
-                scroll_speed=5.0,
-                min_current_time=6.0,
-                max_current_time=12.0
+                time_keeper_instance=self.time_keeper
             ),
             gnome_message_runner(
                 graphic_interface=self.graphic_interface,
-                message_font=name_font,
             ),
             teeth_program_runner(
                 graphic_interface=self.graphic_interface,
@@ -99,42 +83,6 @@ class program_manager:
         if self.programs:
             self.set_active_program(type(self.programs[0]))
     
-    def _load_font(self, font_name: str, font_size=16):
-        """
-        Load a font from the fonts directory.
-        
-        Args:
-            font_name: Name of the font file without extension
-            font_size: Font size (only used for emulated graphics interface)
-            
-        Returns:
-            Loaded font or None if loading failed
-        """
-        import os
-        import platform
-        from src.ws_display.renderer.emulated_graphics_interface import EmulatedFont
-        
-        font = self.graphic_interface.CreateFont()
-        try:
-            # Check if we're on a Raspberry Pi
-            is_raspberry_pi = platform.machine().startswith('arm') and os.path.exists('/sys/firmware/devicetree/base/model')
-            
-            # Try to load the font from the fonts directory
-            if not is_raspberry_pi:
-                font_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
-                                        "fonts", font_name+".ttf")
-            else:
-                font_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
-                                        "fonts", font_name+".bdf")
-            
-            font.LoadFont(font_path)
-            if isinstance(font, EmulatedFont):
-                font._font_size = font_size  # Set font size for emulated graphics interface
-            self.logger.info(f"Loaded font: {font_path}")
-            return font
-        except Exception as e:
-            self.logger.error(f"Failed to load font: {e}")
-            return None
     
     def get_program_by_type(self, program_type: Type[T]) -> Optional[T]:
         """

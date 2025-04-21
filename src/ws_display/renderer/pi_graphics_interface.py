@@ -48,6 +48,10 @@ class PiFont(Font):
         self._loaded = False
     
     def LoadFont(self, file: str) -> None:
+        # Check if the file ends with .ttf and replace with .bdf for Pi compatibility
+        if file.endswith('.ttf'):
+            file = file[:-4] + '.bdf'
+            
         if not self._font.LoadFont(file):
             raise Exception(f"Couldn't load font {file}")
         self._loaded = True
