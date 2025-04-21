@@ -111,8 +111,7 @@ async def main():
         
         # Run the main application
         await app.run()
-    except Exception as e:
-        Logger.get_logger().error(f"Application error: {e}")
+  
     finally:
         # Clean up
         app.ui.cleanup()
@@ -123,5 +122,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("Application stopped by user")
-    except Exception as e:
-        print(f"Application error: {e}")
+

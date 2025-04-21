@@ -61,16 +61,23 @@ class Platform:
                 
                 # Create matrix options
                 matrix_options = {
-                    'rows': config.panel_height,
-                    'cols': config.panel_width,
-                    'chain_length': config.panel_count_x,
-                    'parallel': config.panel_count_y,
-                    'hardware_mapping': 'adafruit-hat',  # Adjust as needed
+                    'rows': 40,
+                    'cols': 80,
+                    'chain_length': 4,
+                    'parallel': 1,
+                    'hardware_mapping': 'adafruit-hat',
                     'pwm_bits': 11,
+                    'gpio_slowdown': 2,
+                    'scan_mode': 0,
                     'brightness': 100,
-                    'scan_mode': config.scan_mode
+                    'pwm_lsb_nanoseconds': 130,
+                    'led_rgb_sequence': 'RGB',
+                    'show_refresh_rate': True,
                 }
+
                 
+                print(config.scan_mode)
+                print(config)
                 return PiGraphicInterface(
                     config_brightness_override=config.brightness_override,
                     **matrix_options

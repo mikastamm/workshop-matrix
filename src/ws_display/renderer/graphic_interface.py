@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 from enum import Enum
+from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Any, List, Literal
 import os
 from PIL import Image
