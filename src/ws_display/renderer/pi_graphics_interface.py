@@ -94,8 +94,7 @@ class PiGraphicInterface(GraphicInterface):
         super().__init__(config_brightness_override)
         
         # Import here to avoid errors when not on a Pi
-        from rgbmatrix import RGBMatrix, RGBMatrixOptions
-        
+        from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
         # Configure matrix options
         options = RGBMatrixOptions()
         

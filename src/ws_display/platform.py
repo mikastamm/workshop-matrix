@@ -70,9 +70,8 @@ class Platform:
                     'gpio_slowdown': 2,
                     'scan_mode': 0,
                     'brightness': 100,
-                    'pwm_lsb_nanoseconds': 130,
-                    'led_rgb_sequence': 'RGB',
                     'show_refresh_rate': True,
+                    'pixel_mapper_config': 'U-Mapper',
                 }
 
                 
