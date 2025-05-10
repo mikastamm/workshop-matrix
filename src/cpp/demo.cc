@@ -236,7 +236,7 @@ public:
   ImageScroller(RGBMatrix *m, int scroll_jumps, int scroll_ms = 30)
     : DemoRunner(m), scroll_jumps_(scroll_jumps),
       scroll_ms_(scroll_ms),
-      horizontal_position_(0),
+      horizontal_position_(0),    
       matrix_(m) {
     offscreen_ = matrix_->CreateFrameCanvas();
   }
